@@ -67,7 +67,7 @@ export function useStreamingChat({
 
         // Start SSE connection
         const response = await fetch(
-          `${API_BASE_URL}/chat/${conversationId}/stream`,
+          `${API_BASE_URL}/conversations/${conversationId}/messages/stream`,
           {
             method: 'POST',
             headers: {
@@ -95,6 +95,7 @@ export function useStreamingChat({
         let fullContent = ''
         let messageId = ''
         let tokens: TokenUsage | undefined
+        let currentEventType = ''
 
         while (true) {
           const { done, value } = await reader.read()
@@ -108,6 +109,12 @@ export function useStreamingChat({
           buffer = lines.pop() || ''
 
           for (const line of lines) {
+            // Handle event type line
+            if (line.startsWith('event: ')) {
+              currentEventType = line.slice(7).trim()
+              continue
+            }
+
             if (line.startsWith('data: ')) {
               const data = line.slice(6)
 
@@ -116,26 +123,35 @@ export function useStreamingChat({
               }
 
               try {
-                const event = JSON.parse(data)
+                const eventData = JSON.parse(data)
 
-                switch (event.type) {
+                // Use the event type from the event: line, or from eventData.type if present
+                const eventType = currentEventType || eventData.type
+
+                switch (eventType) {
                   case 'message_start':
-                    messageId = event.data.messageId || ''
+                    messageId = eventData.messageId || eventData.userMessageId || ''
                     break
 
                   case 'content_delta':
-                    fullContent += event.data.delta
-                    dispatch(appendStreamingContent(event.data.delta))
+                    const delta = eventData.delta
+                    if (delta) {
+                      fullContent += delta
+                      dispatch(appendStreamingContent(delta))
+                    }
                     break
 
                   case 'message_end':
-                    messageId = event.data.messageId
-                    tokens = event.data.tokens
+                    messageId = eventData.messageId || messageId
+                    tokens = eventData.tokens
                     break
 
                   case 'error':
-                    throw new Error(event.data.error)
+                    throw new Error(eventData.error)
                 }
+
+                // Reset event type after processing
+                currentEventType = ''
               } catch (e) {
                 // Ignore JSON parse errors for incomplete chunks
                 if (e instanceof SyntaxError) continue

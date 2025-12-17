@@ -15,6 +15,26 @@ import type {
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
 
+// Backend response wrapper type
+interface ApiResponse<T> {
+  success: boolean
+  data: T
+}
+
+// Backend conversation list response
+interface ConversationListData {
+  conversations: Conversation[]
+  total: number
+  limit: number
+  offset: number
+}
+
+// Backend message list response
+interface MessageListData {
+  messages: Message[]
+  hasMore: boolean
+}
+
 /**
  * RTK Query base API configuration
  */
@@ -60,6 +80,7 @@ export const api = createApi({
 
     getCurrentUser: builder.query<User, void>({
       query: () => '/auth/me',
+      transformResponse: (response: ApiResponse<User>) => response.data,
       providesTags: ['User'],
     }),
 
@@ -70,6 +91,12 @@ export const api = createApi({
     >({
       query: ({ limit = 50, offset = 0 }) =>
         `/conversations?limit=${limit}&offset=${offset}`,
+      transformResponse: (response: ApiResponse<ConversationListData>) => ({
+        items: response.data.conversations,
+        total: response.data.total,
+        limit: response.data.limit,
+        offset: response.data.offset,
+      }),
       providesTags: (result) =>
         result
           ? [
@@ -84,6 +111,7 @@ export const api = createApi({
 
     getConversation: builder.query<Conversation, string>({
       query: (id) => `/conversations/${id}`,
+      transformResponse: (response: ApiResponse<Conversation>) => response.data,
       providesTags: (_result, _error, id) => [{ type: 'Conversation', id }],
     }),
 
@@ -93,6 +121,7 @@ export const api = createApi({
         method: 'POST',
         body: data,
       }),
+      transformResponse: (response: ApiResponse<Conversation>) => response.data,
       invalidatesTags: [{ type: 'Conversation', id: 'LIST' }],
     }),
 
@@ -102,9 +131,10 @@ export const api = createApi({
     >({
       query: ({ id, data }) => ({
         url: `/conversations/${id}`,
-        method: 'PATCH',
+        method: 'PUT',
         body: data,
       }),
+      transformResponse: (response: ApiResponse<Conversation>) => response.data,
       invalidatesTags: (_result, _error, { id }) => [
         { type: 'Conversation', id },
         { type: 'Conversation', id: 'LIST' },
@@ -125,10 +155,22 @@ export const api = createApi({
     // ============ Message Endpoints ============
     getMessages: builder.query<
       PaginatedResponse<Message>,
-      { conversationId: string; limit?: number; offset?: number }
+      { conversationId: string; limit?: number; before?: string }
     >({
-      query: ({ conversationId, limit = 50, offset = 0 }) =>
-        `/conversations/${conversationId}/messages?limit=${limit}&offset=${offset}`,
+      query: ({ conversationId, limit = 50, before }) => {
+        let url = `/conversations/${conversationId}/messages?limit=${limit}`
+        if (before) {
+          url += `&before=${before}`
+        }
+        return url
+      },
+      transformResponse: (response: ApiResponse<MessageListData>, _meta, arg) => ({
+        items: response.data.messages,
+        total: response.data.messages.length,
+        limit: arg.limit || 50,
+        offset: 0,
+        hasMore: response.data.hasMore,
+      }),
       providesTags: (result, _error, { conversationId }) =>
         result
           ? [
@@ -148,11 +190,13 @@ export const api = createApi({
         method: 'POST',
         body: formData,
       }),
+      transformResponse: (response: ApiResponse<FileUpload>) => response.data,
       invalidatesTags: ['File'],
     }),
 
     getFile: builder.query<FileUpload, string>({
       query: (id) => `/files/${id}`,
+      transformResponse: (response: ApiResponse<FileUpload>) => response.data,
       providesTags: (_result, _error, id) => [{ type: 'File', id }],
     }),
 

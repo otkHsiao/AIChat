@@ -1,10 +1,14 @@
 """Azure OpenAI service for AI chat completions."""
 
+import logging
 from typing import Any, AsyncGenerator, Dict, List, Optional
 
 from openai import AzureOpenAI
 
 from app.core.config import get_settings
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 
 class AzureOpenAIService:
@@ -13,12 +17,21 @@ class AzureOpenAIService:
     def __init__(self) -> None:
         """Initialize the Azure OpenAI service."""
         self.settings = get_settings()
+        
+        # Log configuration for debugging
+        logger.info(f"Initializing Azure OpenAI Service")
+        logger.info(f"  Endpoint: {self.settings.azure_openai_endpoint}")
+        logger.info(f"  Deployment: {self.settings.azure_openai_deployment_name}")
+        logger.info(f"  API Version: {self.settings.azure_openai_api_version}")
+        logger.info(f"  API Key (first 8 chars): {self.settings.azure_openai_api_key[:8]}...")
+        
         self.client = AzureOpenAI(
             api_key=self.settings.azure_openai_api_key,
             api_version=self.settings.azure_openai_api_version,
             azure_endpoint=self.settings.azure_openai_endpoint,
         )
         self.deployment_name = self.settings.azure_openai_deployment_name
+        logger.info(f"Azure OpenAI client initialized successfully")
 
     def _build_messages(
         self,
@@ -136,31 +149,45 @@ class AzureOpenAIService:
             Dict with delta content or finish signal
         """
         messages = self._build_messages(system_prompt, history, user_message, attachments)
+        
+        logger.info(f"Starting streaming chat completion")
+        logger.info(f"  Deployment: {self.deployment_name}")
+        logger.info(f"  Messages count: {len(messages)}")
+        logger.info(f"  Max tokens: {max_tokens}")
+        logger.info(f"  Temperature: {temperature}")
 
-        stream = self.client.chat.completions.create(
-            model=self.deployment_name,
-            messages=messages,
-            max_tokens=max_tokens,
-            temperature=temperature,
-            stream=True,
-        )
+        try:
+            stream = self.client.chat.completions.create(
+                model=self.deployment_name,
+                messages=messages,
+                max_tokens=max_tokens,
+                temperature=temperature,
+                stream=True,
+            )
+            logger.info("Stream created successfully, iterating chunks...")
 
-        for chunk in stream:
-            if chunk.choices and len(chunk.choices) > 0:
-                delta = chunk.choices[0].delta
-                finish_reason = chunk.choices[0].finish_reason
+            for chunk in stream:
+                if chunk.choices and len(chunk.choices) > 0:
+                    delta = chunk.choices[0].delta
+                    finish_reason = chunk.choices[0].finish_reason
 
-                if delta.content:
-                    yield {
-                        "type": "content_delta",
-                        "delta": delta.content,
-                    }
+                    if delta.content:
+                        yield {
+                            "type": "content_delta",
+                            "delta": delta.content,
+                        }
 
-                if finish_reason:
-                    yield {
-                        "type": "finish",
-                        "finish_reason": finish_reason,
-                    }
+                    if finish_reason:
+                        logger.info(f"Stream finished with reason: {finish_reason}")
+                        yield {
+                            "type": "finish",
+                            "finish_reason": finish_reason,
+                        }
+        except Exception as e:
+            logger.error(f"Azure OpenAI API error: {type(e).__name__}: {str(e)}")
+            logger.error(f"  Endpoint used: {self.settings.azure_openai_endpoint}")
+            logger.error(f"  Deployment used: {self.deployment_name}")
+            raise
 
 
 # Singleton instance

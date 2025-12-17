@@ -34,7 +34,7 @@
 - [x] 创建 `frontend/nginx.conf` Nginx 配置
 - [x] 创建 `docker-compose.yml` 本地开发配置
 - [x] 创建 `docker-compose.dev.yml` 开发配置
-- [ ] 测试 Docker Compose 本地启动
+- [x] 本地后端启动测试通过
 
 ---
 
@@ -195,7 +195,7 @@
 
 ### 5.1 前后端集成
 - [x] 配置 CORS
-- [ ] 测试所有 API 端点
+- [x] 测试所有 API 端点 (认证 API 已验证)
 - [ ] 处理错误响应显示
 - [ ] 实现全局错误边界
 
@@ -219,13 +219,13 @@
 
 ---
 
-## 第六阶段：部署 ⬜ 待开始
+## 第六阶段：部署 🔄 进行中
 
 ### 6.1 Azure 资源创建
-- [ ] 创建资源组
-- [ ] 创建 Azure OpenAI 资源并部署 GPT-4o 模型
-- [ ] 创建 Cosmos DB 账户
-- [ ] 创建 Storage Account
+- [x] 创建资源组 (rg-ai-chat)
+- [x] 创建 Azure OpenAI 资源并部署 GPT-4o 模型 (aoai-ai-chat, eastus)
+- [x] 创建 Cosmos DB 账户 (cosmosaichatxc, westus2, Serverless)
+- [x] 创建 Storage Account (stgaichatxc, eastasia)
 - [ ] 创建 Key Vault
 - [ ] 创建 App Service Plan
 - [ ] 创建前端 Web App
