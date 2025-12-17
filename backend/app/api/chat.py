@@ -182,6 +182,16 @@ async def send_message_stream(
             if msg["role"] in ("user", "assistant")
         ]
 
+        # Prepare image attachments for GPT-4o Vision
+        image_attachments = []
+        if chat_request.attachments:
+            for att in chat_request.attachments:
+                if att.type == "image" and att.url:
+                    image_attachments.append({
+                        "type": "image",
+                        "url": att.url,
+                    })
+
         # Send message start event
         message_id = None
         yield f"event: message_start\ndata: {json.dumps({'userMessageId': user_message['id']})}\n\n"
@@ -194,6 +204,7 @@ async def send_message_stream(
                 system_prompt=conversation["systemPrompt"],
                 history=history_for_api,
                 user_message=chat_request.content,
+                attachments=image_attachments if image_attachments else None,
             ):
                 if chunk["type"] == "content_delta":
                     full_content += chunk["delta"]

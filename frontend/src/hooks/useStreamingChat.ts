@@ -8,9 +8,35 @@ import {
   addMessage,
   setError,
 } from '../features/chat/chatSlice'
-import type { Message, TokenUsage } from '../types'
+import type { Message, TokenUsage, Attachment } from '../types'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
+
+// Helper function to upload a file
+async function uploadFile(file: File, token: string): Promise<{ id: string; url: string; type: 'image' | 'file' }> {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  const response = await fetch(`${API_BASE_URL}/files/upload`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: formData,
+  })
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}))
+    throw new Error(errorData.message || '文件上传失败')
+  }
+
+  const result = await response.json()
+  return {
+    id: result.data.id,
+    url: result.data.url,
+    type: result.data.type,
+  }
+}
 
 interface UseStreamingChatOptions {
   conversationId: string
@@ -45,24 +71,51 @@ export function useStreamingChat({
       const abortController = new AbortController()
       abortControllerRef.current = abortController
 
-      // Add user message to state
-      const userMessage: Message = {
-        id: `temp-${Date.now()}`,
-        conversationId,
-        role: 'user',
-        content,
-        createdAt: new Date().toISOString(),
-      }
-      dispatch(addMessage(userMessage))
-
       // Reset streaming state
       dispatch(startStreaming())
 
       try {
+        // Upload files first if any
+        let uploadedAttachments: { id: string; url: string; type: 'image' | 'file' }[] = []
+        
+        if (files && files.length > 0) {
+          try {
+            uploadedAttachments = await Promise.all(
+              files.map((file) => uploadFile(file, token))
+            )
+          } catch (uploadError) {
+            dispatch(setError(uploadError instanceof Error ? uploadError.message : '文件上传失败'))
+            return
+          }
+        }
+
+        // Create user message with attachments (before adding to Redux)
+        const userMessage: Message = {
+          id: `temp-${Date.now()}`,
+          conversationId,
+          role: 'user',
+          content,
+          createdAt: new Date().toISOString(),
+          attachments: uploadedAttachments.length > 0
+            ? uploadedAttachments.map((att) => ({
+                id: att.id,
+                type: att.type,
+                url: att.url,
+              })) as Attachment[]
+            : undefined,
+        }
+        
+        // Add user message to state
+        dispatch(addMessage(userMessage))
+
         // Prepare request body
         const body = JSON.stringify({
           content,
-          attachments: files?.map((f) => ({ id: f.name, type: 'file' })) || [],
+          attachments: uploadedAttachments.map((att) => ({
+            id: att.id,
+            type: att.type,
+            url: att.url,
+          })),
         })
 
         // Start SSE connection
