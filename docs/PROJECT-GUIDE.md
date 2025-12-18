@@ -214,14 +214,16 @@ ai-chat/
 │   │   ├── main.py           # FastAPI 应用入口，路由配置，中间件
 │   │   ├── api/              # API 路由模块
 │   │   │   ├── __init__.py   # 路由聚合，导出 api_router
-│   │   │   ├── auth.py       # 认证 API：登录、注册、刷新令牌
-│   │   │   ├── conversations.py  # 对话 API：创建、列表、删除对话
+│   │   │   ├── auth.py       # 认证 API：登录、注册(已禁用)、刷新令牌
+│   │   │   ├── conversations.py  # 对话 API：创建、列表、删除对话 (速率限制)
 │   │   │   ├── messages.py   # 消息 API：发送消息、流式响应
-│   │   │   └── files.py      # 文件 API：上传、下载、删除文件
+│   │   │   ├── chat.py       # 聊天 API：消息发送、历史记录 (速率限制)
+│   │   │   └── files.py      # 文件 API：上传、下载、删除文件 (速率限制)
 │   │   ├── core/             # 核心模块
 │   │   │   ├── __init__.py
 │   │   │   ├── config.py     # 配置管理，环境变量读取
 │   │   │   ├── security.py   # 安全模块：密码哈希、JWT 生成验证
+│   │   │   ├── sanitizer.py  # 输入清理：XSS 防护、HTML 过滤
 │   │   │   └── dependencies.py   # 依赖注入：数据库连接、当前用户
 │   │   ├── models/           # 数据模型
 │   │   │   ├── __init__.py
@@ -260,9 +262,22 @@ ai-chat/
 │   │   │   ├── Auth/         # 认证组件
 │   │   │   │   ├── LoginForm.tsx     # 登录表单
 │   │   │   │   └── RegisterForm.tsx  # 注册表单
+│   │   │   ├── ErrorBoundary/  # 错误边界组件
+│   │   │   │   └── ErrorBoundary.tsx # 全局错误捕获
+│   │   │   ├── Toast/         # Toast 通知组件
+│   │   │   │   ├── ToastProvider.tsx # Toast 上下文提供者
+│   │   │   │   └── index.ts          # 导出
+│   │   │   ├── Skeleton/      # 骨架屏组件
+│   │   │   │   ├── ChatSkeleton.tsx  # 聊天加载骨架
+│   │   │   │   ├── SidebarSkeleton.tsx # 侧边栏骨架
+│   │   │   │   └── index.ts          # 导出
+│   │   │   ├── LazyImage/     # 图片懒加载组件
+│   │   │   │   ├── LazyImage.tsx     # 懒加载图片
+│   │   │   │   └── index.ts          # 导出
+│   │   │   ├── OfflineIndicator/  # 离线状态指示器
+│   │   │   │   └── OfflineIndicator.tsx
 │   │   │   └── common/       # 通用组件
-│   │   │       ├── Loading.tsx       # 加载状态
-│   │   │       └── ErrorBoundary.tsx # 错误边界
+│   │   │       └── Loading.tsx       # 加载状态
 │   │   ├── pages/            # 页面组件
 │   │   │   ├── HomePage.tsx  # 首页/聊天页
 │   │   │   ├── LoginPage.tsx # 登录页
@@ -279,7 +294,9 @@ ai-chat/
 │   │   │       └── messageApi.ts     # 消息 API
 │   │   ├── hooks/            # 自定义 Hooks
 │   │   │   ├── useAuth.ts    # 认证 Hook
-│   │   │   └── useChat.ts    # 聊天 Hook
+│   │   │   ├── useChat.ts    # 聊天 Hook
+│   │   │   ├── useMediaQuery.ts  # 响应式媒体查询
+│   │   │   └── useOnlineStatus.ts # 在线状态检测
 │   │   ├── utils/            # 工具函数
 │   │   │   ├── api.ts        # API 客户端
 │   │   │   └── storage.ts    # 本地存储
@@ -398,34 +415,34 @@ docker run -d -p 80:80 -e API_URL=http://localhost:8000 ai-chat-frontend:latest
 ## API 端点摘要
 
 ### 认证 API
-| 方法 | 端点 | 说明 |
-|------|------|------|
-| POST | `/api/auth/register` | 用户注册 |
-| POST | `/api/auth/login` | 用户登录 |
-| POST | `/api/auth/refresh` | 刷新令牌 |
-| GET | `/api/auth/me` | 获取当前用户 |
+| 方法 | 端点 | 说明 | 速率限制 |
+|------|------|------|---------|
+| POST | `/api/auth/register` | 用户注册 (已禁用) | - |
+| POST | `/api/auth/login` | 用户登录 | - |
+| POST | `/api/auth/refresh` | 刷新令牌 | - |
+| GET | `/api/auth/me` | 获取当前用户 | - |
 
 ### 对话 API
-| 方法 | 端点 | 说明 |
-|------|------|------|
-| GET | `/api/conversations` | 获取对话列表 |
-| POST | `/api/conversations` | 创建新对话 |
-| GET | `/api/conversations/{id}` | 获取对话详情 |
-| DELETE | `/api/conversations/{id}` | 删除对话 |
+| 方法 | 端点 | 说明 | 速率限制 |
+|------|------|------|---------|
+| GET | `/api/conversations` | 获取对话列表 | 60/分钟 |
+| POST | `/api/conversations` | 创建新对话 | 30/分钟 |
+| GET | `/api/conversations/{id}` | 获取对话详情 | 60/分钟 |
+| DELETE | `/api/conversations/{id}` | 删除对话 | 30/分钟 |
 
 ### 消息 API
-| 方法 | 端点 | 说明 |
-|------|------|------|
-| POST | `/api/conversations/{id}/messages` | 发送消息 |
-| GET | `/api/conversations/{id}/messages` | 获取消息历史 |
-| POST | `/api/conversations/{id}/messages/stream` | 流式发送消息 (SSE) |
+| 方法 | 端点 | 说明 | 速率限制 |
+|------|------|------|---------|
+| POST | `/api/conversations/{id}/messages` | 发送消息 | 20/分钟 |
+| GET | `/api/conversations/{id}/messages` | 获取消息历史 | 60/分钟 |
+| POST | `/api/conversations/{id}/messages/stream` | 流式发送消息 (SSE) | 20/分钟 |
 
 ### 文件 API
-| 方法 | 端点 | 说明 |
-|------|------|------|
-| POST | `/api/files/upload` | 上传文件 |
-| GET | `/api/files/{id}` | 下载文件 |
-| DELETE | `/api/files/{id}` | 删除文件 |
+| 方法 | 端点 | 说明 | 速率限制 |
+|------|------|------|---------|
+| POST | `/api/files/upload` | 上传文件 | 30/分钟 |
+| GET | `/api/files/{id}` | 下载文件 | - |
+| DELETE | `/api/files/{id}` | 删除文件 | - |
 
 ---
 
@@ -446,6 +463,19 @@ docker run -d -p 80:80 -e API_URL=http://localhost:8000 ai-chat-frontend:latest
 - 允许来源：前端域名
 - 允许方法：GET, POST, PUT, DELETE, OPTIONS
 - 允许凭证：是
+
+### 速率限制
+后端使用 `slowapi` 库实现 API 速率限制，防止滥用：
+- 消息发送：20 次/分钟
+- 对话列表：60 次/分钟
+- 对话创建：30 次/分钟
+- 文件上传：30 次/分钟
+
+### 输入清理
+后端实现了输入清理机制，防止 XSS 和注入攻击：
+- HTML 标签过滤
+- 特殊字符转义
+- 输入长度限制
 
 ---
 
@@ -498,6 +528,17 @@ az webapp log tail --name app-ai-chat-frontend-xc --resource-group rg-ai-chat
 ---
 
 ## 更新日志
+
+### v0.2.0 (2025-12-18)
+- **移动端优化**: 响应式 Sidebar，触摸友好的 UI
+- **错误处理**: 全局 ErrorBoundary，Toast 通知系统
+- **加载体验**: 聊天和侧边栏骨架屏组件
+- **性能优化**: 图片懒加载 (IntersectionObserver)
+- **离线支持**: 离线状态指示器
+- **安全加固**:
+  - API 速率限制 (slowapi)
+  - 输入清理和验证
+  - 注册 API 已禁用
 
 ### v0.1.0 (2025-12-18)
 - 初始版本发布
