@@ -70,13 +70,27 @@ import os
 # 路径设置
 # ============================================================================
 
-# 将父目录添加到 Python 路径
-# 这样才能导入 app 包中的模块
+# 获取 backend 目录路径（脚本所在目录的父目录）
 # __file__ 是当前脚本路径：backend/scripts/create_user.py
 # 第一个 dirname 得到：backend/scripts
 # 第二个 dirname 得到：backend
+BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# 将 backend 目录添加到 Python 路径
 # 这样就能正确导入 app.services.cosmos_db 等模块
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, BACKEND_DIR)
+
+# 切换工作目录到 backend，确保能找到 .env 文件
+os.chdir(BACKEND_DIR)
+
+# 加载 .env 文件中的环境变量
+try:
+    from dotenv import load_dotenv
+    load_dotenv(os.path.join(BACKEND_DIR, ".env"))
+    load_dotenv(os.path.join(BACKEND_DIR, ".env.local"), override=True)
+except ImportError:
+    # 如果没有安装 python-dotenv，依赖 pydantic-settings 自动加载
+    pass
 
 from typing import Optional
 
