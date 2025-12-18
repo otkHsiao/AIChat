@@ -1,0 +1,9 @@
+{
+  "properties": {
+    "WEBSITES_ENABLE_APP_SERVICE_STORAGE": "false",
+    "DOCKER_REGISTRY_SERVER_URL": "https://acraichatxc.azurecr.io",
+    "DOCKER_REGISTRY_SERVER_USERNAME": "acraichatxc",
+    "DOCKER_REGISTRY_SERVER_PASSWORD": "@Microsoft.KeyVault(SecretUri=https://kv-ai-chat-xc.vault.azure.net/secrets/ACR-PASSWORD/)",
+    "API_URL": "https://app-ai-chat-backend-xc.azurewebsites.net"
+  }
+}

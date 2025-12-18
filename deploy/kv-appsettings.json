@@ -1,0 +1,22 @@
+{
+  "properties": {
+    "WEBSITES_ENABLE_APP_SERVICE_STORAGE": "false",
+    "DOCKER_REGISTRY_SERVER_URL": "https://acraichatxc.azurecr.io",
+    "DOCKER_REGISTRY_SERVER_USERNAME": "acraichatxc",
+    "DOCKER_REGISTRY_SERVER_PASSWORD": "@Microsoft.KeyVault(SecretUri=https://kv-ai-chat-xc.vault.azure.net/secrets/ACR-PASSWORD/)",
+    "AZURE_OPENAI_ENDPOINT": "https://aoai-ai-chat-xc.openai.azure.com/",
+    "AZURE_OPENAI_API_KEY": "@Microsoft.KeyVault(SecretUri=https://kv-ai-chat-xc.vault.azure.net/secrets/AZURE-OPENAI-API-KEY/)",
+    "AZURE_OPENAI_API_VERSION": "2024-02-15-preview",
+    "AZURE_OPENAI_DEPLOYMENT_NAME": "gpt-4o",
+    "COSMOS_DB_ENDPOINT": "https://cosmosaichatxc.documents.azure.com:443/",
+    "COSMOS_DB_KEY": "@Microsoft.KeyVault(SecretUri=https://kv-ai-chat-xc.vault.azure.net/secrets/COSMOS-DB-KEY/)",
+    "COSMOS_DB_DATABASE_NAME": "ai-chat-db",
+    "BLOB_STORAGE_CONNECTION_STRING": "@Microsoft.KeyVault(SecretUri=https://kv-ai-chat-xc.vault.azure.net/secrets/BLOB-STORAGE-CONNECTION-STRING/)",
+    "BLOB_STORAGE_CONTAINER_NAME": "uploads",
+    "JWT_SECRET_KEY": "@Microsoft.KeyVault(SecretUri=https://kv-ai-chat-xc.vault.azure.net/secrets/JWT-SECRET-KEY/)",
+    "JWT_ALGORITHM": "HS256",
+    "ACCESS_TOKEN_EXPIRE_MINUTES": "1440",
+    "CORS_ORIGINS": "https://app-ai-chat-frontend-xc.azurewebsites.net",
+    "WEBSITES_PORT": "8000"
+  }
+}

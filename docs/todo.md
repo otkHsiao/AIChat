@@ -219,28 +219,46 @@
 
 ---
 
-## 第六阶段：部署 🔄 进行中
+## 第六阶段：部署 ✅ 已完成
 
 ### 6.1 Azure 资源创建
 - [x] 创建资源组 (rg-ai-chat)
 - [x] 创建 Azure OpenAI 资源并部署 GPT-4o 模型 (aoai-ai-chat, eastus)
 - [x] 创建 Cosmos DB 账户 (cosmosaichatxc, westus2, Serverless)
 - [x] 创建 Storage Account (stgaichatxc, eastasia)
-- [ ] 创建 Key Vault
-- [ ] 创建 App Service Plan
-- [ ] 创建前端 Web App
-- [ ] 创建后端 Web App
+- [x] 创建 Azure Container Registry (acraichatxc, eastasia)
+- [x] 创建 App Service Plan (asp-ai-chat-xc, B1, Linux)
+- [x] 创建前端 Web App (app-ai-chat-frontend-xc)
+- [x] 创建后端 Web App (app-ai-chat-backend-xc)
 
 ### 6.2 配置与部署
-- [ ] 配置 Key Vault 密钥
-- [ ] 配置 App Service 环境变量
-- [ ] 推送 Docker 镜像到 Azure Container Registry
-- [ ] 部署前端应用
-- [ ] 部署后端应用
-- [ ] 配置自定义域名 (可选)
-- [ ] 配置 SSL 证书
+- [x] 构建并推送 Backend Docker 镜像到 ACR
+- [x] 构建并推送 Frontend Docker 镜像到 ACR
+- [x] 配置 App Service 环境变量
+- [x] 部署后端应用
+- [x] 部署前端应用
+- [x] 配置 CORS (Backend -> Frontend)
+- [x] 配置 SSL 证书 (Azure App Service 自带)
 
-### 6.3 监控与维护
+### 6.3 安全加固 (Key Vault)
+- [x] 创建 Azure Key Vault (kv-ai-chat-xc)
+- [x] 存储敏感密钥到 Key Vault:
+  - AZURE-OPENAI-API-KEY
+  - COSMOS-DB-KEY
+  - BLOB-STORAGE-CONNECTION-STRING
+  - JWT-SECRET-KEY
+  - ACR-PASSWORD
+- [x] 为 Backend Web App 配置托管标识
+- [x] 为 Frontend Web App 配置托管标识
+- [x] 授权托管标识访问 Key Vault
+- [x] 配置 App Service 使用 Key Vault 引用
+
+### 6.4 部署 URLs
+- Frontend: https://app-ai-chat-frontend-xc.azurewebsites.net
+- Backend: https://app-ai-chat-backend-xc.azurewebsites.net
+- Backend Health: https://app-ai-chat-backend-xc.azurewebsites.net/health
+
+### 6.5 监控与维护 (可选)
 - [ ] 配置 Application Insights
 - [ ] 设置告警规则
 - [ ] 创建运维文档
@@ -265,7 +283,7 @@
 | 文件处理 | ✅ 已完成 | 2-3 天 | 1 天 |
 | 前端开发 | ✅ 已完成 | 5-7 天 | 1 天 |
 | 集成优化 | 🔄 进行中 | 2-3 天 | - |
-| 部署上线 | ⬜ 待开始 | 2-3 天 | - |
+| 部署上线 | ✅ 已完成 | 2-3 天 | 1 天 |
 
 **总预计时间：19-26 天**
 **实际已用时间：~4 天（代码框架）**
@@ -299,4 +317,4 @@
 
 ---
 
-*最后更新：2024-12-17*
+*最后更新：2025-12-18*

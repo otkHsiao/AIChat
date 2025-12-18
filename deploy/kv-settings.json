@@ -1,0 +1,22 @@
+[
+  {
+    "name": "AZURE_OPENAI_API_KEY",
+    "value": "@Microsoft.KeyVault(SecretUri=https://kv-ai-chat-xc.vault.azure.net/secrets/AZURE-OPENAI-API-KEY/)",
+    "slotSetting": false
+  },
+  {
+    "name": "COSMOS_DB_KEY",
+    "value": "@Microsoft.KeyVault(SecretUri=https://kv-ai-chat-xc.vault.azure.net/secrets/COSMOS-DB-KEY/)",
+    "slotSetting": false
+  },
+  {
+    "name": "BLOB_STORAGE_CONNECTION_STRING",
+    "value": "@Microsoft.KeyVault(SecretUri=https://kv-ai-chat-xc.vault.azure.net/secrets/BLOB-STORAGE-CONNECTION-STRING/)",
+    "slotSetting": false
+  },
+  {
+    "name": "JWT_SECRET_KEY",
+    "value": "@Microsoft.KeyVault(SecretUri=https://kv-ai-chat-xc.vault.azure.net/secrets/JWT-SECRET-KEY/)",
+    "slotSetting": false
+  }
+]

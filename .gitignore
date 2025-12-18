@@ -80,6 +80,9 @@ backend/*.pyc
 # Azure
 .azure/
 
+# Deployment
+deployment-info.json
+
 # Temporary files
 *.tmp
 *.temp
