@@ -175,6 +175,7 @@ async def send_message_stream(
     async def generate():
         """Generate SSE events for streaming response."""
         openai_service = get_openai_service()
+        blob_service = get_blob_service()
         
         history_for_api = [
             {"role": msg["role"], "content": msg["content"]}
@@ -182,15 +183,45 @@ async def send_message_stream(
             if msg["role"] in ("user", "assistant")
         ]
 
-        # Prepare image attachments for GPT-4o Vision
+        # Process attachments - separate images and text files
         image_attachments = []
+        text_file_contents = []
+        
         if chat_request.attachments:
             for att in chat_request.attachments:
                 if att.type == "image" and att.url:
+                    # Images are passed as URLs to GPT-4o Vision
                     image_attachments.append({
                         "type": "image",
                         "url": att.url,
                     })
+                elif att.type == "file" and att.url:
+                    # Text files need to be downloaded and content included
+                    # Check MIME type to determine if it's a text file
+                    mime_type = att.mimeType or ""
+                    is_text_file = mime_type in (
+                        "text/plain",
+                        "text/markdown",
+                        "application/octet-stream",  # May be text
+                    ) or (att.fileName and att.fileName.endswith((".md", ".txt")))
+                    
+                    if is_text_file:
+                        # Download and include content
+                        file_content = await blob_service.download_text_file(att.url)
+                        if file_content:
+                            file_name = att.fileName or "uploaded_file"
+                            text_file_contents.append({
+                                "fileName": file_name,
+                                "content": file_content,
+                            })
+
+        # Build enhanced user message with file contents
+        enhanced_message = chat_request.content
+        if text_file_contents:
+            file_context = "\n\n---\n以下是用户上传的文件内容：\n"
+            for file_info in text_file_contents:
+                file_context += f"\n【文件: {file_info['fileName']}】\n```\n{file_info['content']}\n```\n"
+            enhanced_message = chat_request.content + file_context
 
         # Send message start event
         message_id = None
@@ -203,7 +234,7 @@ async def send_message_stream(
             async for chunk in openai_service.chat_completion_stream(
                 system_prompt=conversation["systemPrompt"],
                 history=history_for_api,
-                user_message=chat_request.content,
+                user_message=enhanced_message,
                 attachments=image_attachments if image_attachments else None,
             ):
                 if chunk["type"] == "content_delta":

@@ -22,6 +22,8 @@ class AttachmentRef(BaseModel):
     id: str
     type: Literal["image", "file"]
     url: Optional[str] = None
+    fileName: Optional[str] = None
+    mimeType: Optional[str] = None
 
 
 class TokenUsage(BaseModel):

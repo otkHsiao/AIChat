@@ -21,6 +21,20 @@ ALLOWED_FILE_TYPES = {
 }
 ALL_ALLOWED_TYPES = ALLOWED_IMAGE_TYPES | ALLOWED_FILE_TYPES
 
+# Extension to MIME type mapping for common files
+EXTENSION_TO_MIME = {
+    ".md": "text/markdown",
+    ".txt": "text/plain",
+    ".pdf": "application/pdf",
+    ".doc": "application/msword",
+    ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".png": "image/png",
+    ".gif": "image/gif",
+    ".webp": "image/webp",
+}
+
 # Size limits (in bytes)
 MAX_IMAGE_SIZE = 10 * 1024 * 1024  # 10 MB
 MAX_FILE_SIZE = 20 * 1024 * 1024   # 20 MB
@@ -46,6 +60,12 @@ class BlobStorageService:
             return "image"
         return "file"
 
+    def _get_mime_from_extension(self, filename: str) -> Optional[str]:
+        """Get MIME type from file extension."""
+        import os
+        _, ext = os.path.splitext(filename.lower())
+        return EXTENSION_TO_MIME.get(ext)
+
     def validate_file(
         self, file_content: bytes, content_type: str, filename: str
     ) -> Dict[str, Any]:
@@ -63,12 +83,19 @@ class BlobStorageService:
         Raises:
             ValueError: If file type or size is invalid
         """
+        # If content_type is octet-stream, try to determine from extension
+        actual_content_type = content_type
+        if content_type == "application/octet-stream":
+            mime_from_ext = self._get_mime_from_extension(filename)
+            if mime_from_ext:
+                actual_content_type = mime_from_ext
+        
         # Check MIME type
-        if content_type not in ALL_ALLOWED_TYPES:
-            raise ValueError(f"File type '{content_type}' is not allowed")
+        if actual_content_type not in ALL_ALLOWED_TYPES:
+            raise ValueError(f"File type '{actual_content_type}' is not allowed")
 
         # Determine file type
-        file_type = self._get_file_type(content_type)
+        file_type = self._get_file_type(actual_content_type)
 
         # Check size
         file_size = len(file_content)
@@ -80,7 +107,7 @@ class BlobStorageService:
 
         return {
             "type": file_type,
-            "mime_type": content_type,
+            "mime_type": actual_content_type,
             "size": file_size,
             "filename": filename,
         }
@@ -192,6 +219,59 @@ class BlobStorageService:
         """Check if a blob exists."""
         blob_client = self.container_client.get_blob_client(blob_name)
         return blob_client.exists()
+
+    async def download_file_content(self, url: str) -> Optional[bytes]:
+        """
+        Download file content from a URL (can be SAS URL or blob name).
+        
+        Args:
+            url: Full SAS URL or blob name
+        
+        Returns:
+            File content as bytes, or None if failed
+        """
+        try:
+            # Extract blob name from URL if it's a full SAS URL
+            blob_name = url
+            if "blob.core.windows.net" in url:
+                # Parse URL to get blob name
+                # URL format: https://<account>.blob.core.windows.net/<container>/<blob_name>?<sas>
+                from urllib.parse import urlparse, unquote
+                parsed = urlparse(url)
+                path_parts = parsed.path.split("/")
+                # path_parts[0] is empty, [1] is container, rest is blob name
+                if len(path_parts) >= 3:
+                    blob_name = "/".join(path_parts[2:])
+                    blob_name = unquote(blob_name)
+            
+            blob_client = self.container_client.get_blob_client(blob_name)
+            download = blob_client.download_blob()
+            return download.readall()
+        except Exception as e:
+            print(f"Error downloading file: {e}")
+            return None
+
+    async def download_text_file(self, url: str) -> Optional[str]:
+        """
+        Download and decode text file content.
+        
+        Args:
+            url: Full SAS URL or blob name
+        
+        Returns:
+            File content as string, or None if failed
+        """
+        content = await self.download_file_content(url)
+        if content:
+            try:
+                return content.decode("utf-8")
+            except UnicodeDecodeError:
+                # Try other encodings
+                try:
+                    return content.decode("gbk")
+                except:
+                    return content.decode("utf-8", errors="ignore")
+        return None
 
 
 # Singleton instance

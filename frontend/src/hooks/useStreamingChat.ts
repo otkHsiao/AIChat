@@ -13,7 +13,16 @@ import type { Message, TokenUsage, Attachment } from '../types'
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
 
 // Helper function to upload a file
-async function uploadFile(file: File, token: string): Promise<{ id: string; url: string; type: 'image' | 'file' }> {
+async function uploadFile(
+  file: File,
+  token: string
+): Promise<{
+  id: string
+  url: string
+  type: 'image' | 'file'
+  fileName: string
+  mimeType: string
+}> {
   const formData = new FormData()
   formData.append('file', file)
 
@@ -35,6 +44,8 @@ async function uploadFile(file: File, token: string): Promise<{ id: string; url:
     id: result.data.id,
     url: result.data.url,
     type: result.data.type,
+    fileName: result.data.fileName || file.name,
+    mimeType: result.data.mimeType || file.type,
   }
 }
 
@@ -76,7 +87,13 @@ export function useStreamingChat({
 
       try {
         // Upload files first if any
-        let uploadedAttachments: { id: string; url: string; type: 'image' | 'file' }[] = []
+        let uploadedAttachments: {
+          id: string
+          url: string
+          type: 'image' | 'file'
+          fileName: string
+          mimeType: string
+        }[] = []
         
         if (files && files.length > 0) {
           try {
@@ -108,13 +125,15 @@ export function useStreamingChat({
         // Add user message to state
         dispatch(addMessage(userMessage))
 
-        // Prepare request body
+        // Prepare request body with fileName and mimeType for backend processing
         const body = JSON.stringify({
           content,
           attachments: uploadedAttachments.map((att) => ({
             id: att.id,
             type: att.type,
             url: att.url,
+            fileName: att.fileName,
+            mimeType: att.mimeType,
           })),
         })
 
