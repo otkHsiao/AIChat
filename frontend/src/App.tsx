@@ -11,6 +11,8 @@ import ChatPage from './pages/ChatPage'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { ToastProvider } from './components/Toast'
 import { OfflineIndicator } from './components/OfflineIndicator'
+import { PWAUpdatePrompt } from './components/PWAUpdatePrompt'
+import { PWAInstallPrompt } from './components/PWAInstallPrompt'
 
 // Auth guard component
 function RequireAuth({ children }: { children: React.ReactNode }) {
@@ -32,6 +34,8 @@ function ThemedApp() {
     <FluentProvider theme={currentTheme}>
       <ToastProvider>
         <OfflineIndicator />
+        <PWAUpdatePrompt />
+        <PWAInstallPrompt />
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
