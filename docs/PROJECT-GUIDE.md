@@ -10,12 +10,6 @@
 - **后端 API**: https://app-ai-chat-backend-xc.azurewebsites.net/
 - **API 文档**: https://app-ai-chat-backend-xc.azurewebsites.net/docs (开发模式)
 
-### 测试账号
-
-| 邮箱 | 密码 | 用户名 |
-|------|------|--------|
-| `test@test.com` | `Test123456` | testuser |
-
 ---
 
 ## Azure 服务架构
