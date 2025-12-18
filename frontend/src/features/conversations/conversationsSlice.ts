@@ -31,8 +31,10 @@ export const fetchConversations = createAsyncThunk<
     return rejectWithValue('未登录')
   }
 
-  const limit = params?.limit ?? 50
-  const offset = params?.offset ?? 0
+  // Handle both void and object params
+  const paramsObj = params && typeof params === 'object' ? params : {}
+  const limit = paramsObj.limit ?? 50
+  const offset = paramsObj.offset ?? 0
 
   try {
     const response = await fetch(
@@ -199,6 +201,14 @@ const conversationsSlice = createSlice({
       state.total = 0
       state.error = null
     },
+
+    updateConversationTitle: (state, action: PayloadAction<{ id: string; title: string }>) => {
+      const conversation = state.items.find((conv) => conv.id === action.payload.id)
+      if (conversation) {
+        conversation.title = action.payload.title
+        conversation.updatedAt = new Date().toISOString()
+      }
+    },
   },
   extraReducers: (builder) => {
     // Fetch conversations
@@ -269,6 +279,7 @@ export const {
   setCurrentConversation,
   clearError,
   clearConversations,
+  updateConversationTitle,
 } = conversationsSlice.actions
 
 export default conversationsSlice.reducer

@@ -8,6 +8,7 @@ import {
   addMessage,
   setError,
 } from '../features/chat/chatSlice'
+import { updateConversationTitle } from '../features/conversations/conversationsSlice'
 import type { Message, TokenUsage, Attachment } from '../types'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
@@ -216,6 +217,15 @@ export function useStreamingChat({
                   case 'message_end':
                     messageId = eventData.messageId || messageId
                     tokens = eventData.tokens
+                    // Handle conversation title update if present
+                    if (eventData.conversationTitle) {
+                      dispatch(
+                        updateConversationTitle({
+                          id: conversationId,
+                          title: eventData.conversationTitle,
+                        })
+                      )
+                    }
                     break
 
                   case 'error':

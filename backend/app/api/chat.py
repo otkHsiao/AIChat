@@ -262,14 +262,44 @@ async def send_message_stream(
                     )
                     message_id = assistant_message["id"]
 
-                    # Update conversation
-                    await db.update_conversation(
-                        conversation_id,
-                        user_id,
-                        {"messageCount": conversation["messageCount"] + 2},
-                    )
+                    # Check if this is the first message in the conversation
+                    # If so, generate a smart title based on user's input
+                    new_title = None
+                    if conversation["messageCount"] == 0:
+                        try:
+                            new_title = await openai_service.generate_conversation_title(
+                                chat_request.content
+                            )
+                            # Update conversation with new title
+                            await db.update_conversation(
+                                conversation_id,
+                                user_id,
+                                {
+                                    "messageCount": 2,
+                                    "title": new_title,
+                                },
+                            )
+                        except Exception as e:
+                            # If title generation fails, just update message count
+                            await db.update_conversation(
+                                conversation_id,
+                                user_id,
+                                {"messageCount": 2},
+                            )
+                    else:
+                        # Update conversation message count
+                        await db.update_conversation(
+                            conversation_id,
+                            user_id,
+                            {"messageCount": conversation["messageCount"] + 2},
+                        )
 
-                    yield f"event: message_end\ndata: {json.dumps({'messageId': message_id, 'tokens': tokens})}\n\n"
+                    # Include new title in response if generated
+                    end_data = {'messageId': message_id, 'tokens': tokens}
+                    if new_title:
+                        end_data['conversationTitle'] = new_title
+                    
+                    yield f"event: message_end\ndata: {json.dumps(end_data)}\n\n"
 
         except Exception as e:
             yield f"event: error\ndata: {json.dumps({'error': str(e)})}\n\n"

@@ -3,7 +3,7 @@
 import logging
 from typing import Any, AsyncGenerator, Dict, List, Optional
 
-from openai import AzureOpenAI
+from openai import AzureOpenAI, AsyncAzureOpenAI
 
 from app.core.config import get_settings
 
@@ -25,11 +25,20 @@ class AzureOpenAIService:
         logger.info(f"  API Version: {self.settings.azure_openai_api_version}")
         logger.info(f"  API Key (first 8 chars): {self.settings.azure_openai_api_key[:8]}...")
         
+        # Sync client for non-streaming operations
         self.client = AzureOpenAI(
             api_key=self.settings.azure_openai_api_key,
             api_version=self.settings.azure_openai_api_version,
             azure_endpoint=self.settings.azure_openai_endpoint,
         )
+        
+        # Async client for streaming operations
+        self.async_client = AsyncAzureOpenAI(
+            api_key=self.settings.azure_openai_api_key,
+            api_version=self.settings.azure_openai_api_version,
+            azure_endpoint=self.settings.azure_openai_endpoint,
+        )
+        
         self.deployment_name = self.settings.azure_openai_deployment_name
         logger.info(f"Azure OpenAI client initialized successfully")
 
@@ -125,6 +134,54 @@ class AzureOpenAIService:
             "finish_reason": response.choices[0].finish_reason,
         }
 
+    async def generate_conversation_title(
+        self,
+        user_message: str,
+        max_length: int = 20,
+    ) -> str:
+        """
+        Generate a concise, semantic title for a conversation based on the first user message.
+        
+        Args:
+            user_message: The first user message in the conversation
+            max_length: Maximum number of characters for the title
+        
+        Returns:
+            A short, descriptive title for the conversation
+        """
+        prompt = f"""请根据以下用户输入生成一个简短的对话标题。要求：
+1. 标题长度在5-15个字之间
+2. 不要使用标点符号
+3. 简洁准确地概括用户想讨论的主题
+4. 直接返回标题，不要有任何其他内容
+
+用户输入：{user_message[:500]}"""  # Limit input length
+
+        try:
+            response = self.client.chat.completions.create(
+                model=self.deployment_name,
+                messages=[
+                    {"role": "system", "content": "你是一个标题生成助手，只输出简短的标题，不要有任何解释。"},
+                    {"role": "user", "content": prompt},
+                ],
+                max_tokens=50,
+                temperature=0.3,  # Lower temperature for more focused output
+            )
+            
+            content = response.choices[0].message.content
+            title = content.strip() if content else "新对话"
+            # Remove any quotes or extra punctuation
+            title = title.strip('"\'""''')
+            # Ensure title is not too long
+            if len(title) > max_length:
+                title = title[:max_length]
+            
+            return title if title else "新对话"
+            
+        except Exception as e:
+            logger.warning(f"Failed to generate title: {e}")
+            return "新对话"
+
     async def chat_completion_stream(
         self,
         system_prompt: str,
@@ -135,7 +192,7 @@ class AzureOpenAIService:
         temperature: float = 0.7,
     ) -> AsyncGenerator[Dict[str, Any], None]:
         """
-        Generate a streaming chat completion.
+        Generate a streaming chat completion using async client for true streaming.
         
         Args:
             system_prompt: The system prompt
@@ -150,23 +207,25 @@ class AzureOpenAIService:
         """
         messages = self._build_messages(system_prompt, history, user_message, attachments)
         
-        logger.info(f"Starting streaming chat completion")
+        logger.info(f"Starting streaming chat completion (async)")
         logger.info(f"  Deployment: {self.deployment_name}")
         logger.info(f"  Messages count: {len(messages)}")
         logger.info(f"  Max tokens: {max_tokens}")
         logger.info(f"  Temperature: {temperature}")
 
         try:
-            stream = self.client.chat.completions.create(
+            # Use async client for true async streaming
+            stream = await self.async_client.chat.completions.create(
                 model=self.deployment_name,
                 messages=messages,
                 max_tokens=max_tokens,
                 temperature=temperature,
                 stream=True,
             )
-            logger.info("Stream created successfully, iterating chunks...")
+            logger.info("Async stream created successfully, iterating chunks...")
 
-            for chunk in stream:
+            # Use async for to properly yield chunks without blocking
+            async for chunk in stream:
                 if chunk.choices and len(chunk.choices) > 0:
                     delta = chunk.choices[0].delta
                     finish_reason = chunk.choices[0].finish_reason
