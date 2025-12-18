@@ -226,11 +226,19 @@ async def send_message_stream(
 
         # Build enhanced user message with file contents
         enhanced_message = chat_request.content
+        
+        # If only images are provided without text, add a default prompt
+        if not enhanced_message.strip() and image_attachments:
+            enhanced_message = "请描述并分析这张图片的内容。"
+        
         if text_file_contents:
             file_context = "\n\n---\n以下是用户上传的文件内容：\n"
             for file_info in text_file_contents:
                 file_context += f"\n【文件: {file_info['fileName']}】\n```\n{file_info['content']}\n```\n"
-            enhanced_message = chat_request.content + file_context
+            if enhanced_message:
+                enhanced_message = enhanced_message + file_context
+            else:
+                enhanced_message = "请分析以下文件内容：" + file_context
 
         # Send message start event
         message_id = None
@@ -267,8 +275,18 @@ async def send_message_stream(
                     new_title = None
                     if conversation["messageCount"] == 0:
                         try:
+                            # Use content for title, or a default message for image-only
+                            title_content = chat_request.content.strip()
+                            if not title_content:
+                                if image_attachments:
+                                    title_content = "图片分析对话"
+                                elif text_file_contents:
+                                    title_content = f"文件分析: {text_file_contents[0]['fileName']}"
+                                else:
+                                    title_content = "新对话"
+                            
                             new_title = await openai_service.generate_conversation_title(
-                                chat_request.content
+                                title_content
                             )
                             # Update conversation with new title
                             await db.update_conversation(

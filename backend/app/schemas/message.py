@@ -2,7 +2,7 @@
 
 from typing import List, Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class Attachment(BaseModel):
@@ -36,8 +36,15 @@ class TokenUsage(BaseModel):
 class MessageCreate(BaseModel):
     """Schema for creating a new message."""
 
-    content: str = Field(..., min_length=1, max_length=32000)
+    content: str = Field(default="", max_length=32000)
     attachments: Optional[List[AttachmentRef]] = None
+
+    @model_validator(mode='after')
+    def validate_content_or_attachments(self) -> 'MessageCreate':
+        """Ensure at least content or attachments are provided."""
+        if not self.content.strip() and (not self.attachments or len(self.attachments) == 0):
+            raise ValueError('消息内容和附件不能同时为空')
+        return self
 
 
 class MessageResponse(BaseModel):
@@ -65,8 +72,15 @@ class MessageListResponse(BaseModel):
 class ChatRequest(BaseModel):
     """Schema for chat completion request."""
 
-    content: str = Field(..., min_length=1, max_length=32000)
+    content: str = Field(default="", max_length=32000)
     attachments: Optional[List[AttachmentRef]] = None
+
+    @model_validator(mode='after')
+    def validate_content_or_attachments(self) -> 'ChatRequest':
+        """Ensure at least content or attachments are provided."""
+        if not self.content.strip() and (not self.attachments or len(self.attachments) == 0):
+            raise ValueError('消息内容和附件不能同时为空')
+        return self
 
 
 class ChatResponse(BaseModel):

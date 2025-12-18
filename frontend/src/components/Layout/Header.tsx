@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom'
 import {
   ToolbarButton,
   ToolbarDivider,
@@ -9,6 +10,7 @@ import {
   Avatar,
   makeStyles,
   tokens,
+  Tooltip,
 } from '@fluentui/react-components'
 import {
   NavigationRegular,
@@ -17,12 +19,15 @@ import {
   SettingsRegular,
   SignOutRegular,
   PersonRegular,
+  AddRegular,
 } from '@fluentui/react-icons'
 
 import { useAppDispatch, useAppSelector } from '../../hooks/useAppDispatch'
 import { toggleSidebar, toggleTheme } from '../../features/ui/uiSlice'
 import { logout } from '../../features/auth/authSlice'
 import { selectUser } from '../../features/auth/authSelectors'
+import { createConversation } from '../../features/conversations/conversationsSlice'
+import { useToast } from '../Toast'
 
 const useStyles = makeStyles({
   header: {
@@ -60,16 +65,35 @@ const useStyles = makeStyles({
       gap: tokens.spacingHorizontalXS,
     },
   },
+  newChatButton: {
+    // 在桌面端隐藏（因为侧边栏有新建按钮）
+    '@media (min-width: 769px)': {
+      display: 'none',
+    },
+  },
 })
 
 export default function Header() {
   const classes = useStyles()
   const dispatch = useAppDispatch()
+  const navigate = useNavigate()
   const user = useAppSelector(selectUser)
   const theme = useAppSelector((state) => state.ui.theme)
+  const { showSuccess, showError } = useToast()
 
   const handleLogout = () => {
     dispatch(logout())
+  }
+
+  const handleNewConversation = async () => {
+    try {
+      const result = await dispatch(createConversation({ title: '新对话' })).unwrap()
+      navigate(`/chat/${result.id}`)
+      showSuccess('创建成功', '新对话已创建')
+    } catch (error) {
+      console.error('Failed to create conversation:', error)
+      showError('创建失败', '无法创建新对话，请重试')
+    }
   }
 
   return (
@@ -84,6 +108,15 @@ export default function Header() {
       </div>
 
       <div className={classes.rightSection}>
+        <Tooltip content="新建对话" relationship="label">
+          <ToolbarButton
+            icon={<AddRegular />}
+            onClick={handleNewConversation}
+            aria-label="新建对话"
+            className={classes.newChatButton}
+          />
+        </Tooltip>
+
         <ToolbarButton
           icon={theme === 'dark' ? <WeatherSunnyRegular /> : <WeatherMoonRegular />}
           onClick={() => dispatch(toggleTheme())}

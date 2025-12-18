@@ -173,6 +173,7 @@ interface ConversationsState {
   isLoading: boolean
   error: string | null
   total: number
+  hasFetched: boolean // 标记是否已经获取过数据
 }
 
 const initialState: ConversationsState = {
@@ -181,6 +182,7 @@ const initialState: ConversationsState = {
   isLoading: false,
   error: null,
   total: 0,
+  hasFetched: false,
 }
 
 const conversationsSlice = createSlice({
@@ -200,6 +202,7 @@ const conversationsSlice = createSlice({
       state.currentId = null
       state.total = 0
       state.error = null
+      state.hasFetched = false
     },
 
     updateConversationTitle: (state, action: PayloadAction<{ id: string; title: string }>) => {
@@ -222,6 +225,7 @@ const conversationsSlice = createSlice({
         state.total = action.payload.total
         state.isLoading = false
         state.error = null
+        state.hasFetched = true
       })
       .addCase(fetchConversations.rejected, (state, action) => {
         state.isLoading = false

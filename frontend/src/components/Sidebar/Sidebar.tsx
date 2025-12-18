@@ -13,7 +13,7 @@ import {
   DialogContent,
   Input,
 } from '@fluentui/react-components'
-import { AddRegular } from '@fluentui/react-icons'
+import { AddRegular, ArrowSyncRegular } from '@fluentui/react-icons'
 
 import { useAppDispatch, useAppSelector } from '../../hooks/useAppDispatch'
 import {
@@ -48,6 +48,19 @@ const useStyles = makeStyles({
   header: {
     padding: tokens.spacingVerticalM,
     borderBottom: `1px solid ${tokens.colorNeutralStroke1}`,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: tokens.spacingVerticalS,
+  },
+  headerButtons: {
+    display: 'flex',
+    gap: tokens.spacingHorizontalS,
+  },
+  newButton: {
+    flex: 1,
+  },
+  refreshButton: {
+    minWidth: 'auto',
   },
   content: {
     flex: 1,
@@ -67,7 +80,7 @@ export default function Sidebar() {
   const navigate = useNavigate()
   const { showSuccess, showError } = useToast()
 
-  const { items, isLoading, currentId } = useAppSelector(
+  const { items, isLoading, currentId, hasFetched } = useAppSelector(
     (state) => state.conversations
   )
   const isAuthenticated = useAppSelector((state) => !!state.auth.token)
@@ -81,12 +94,17 @@ export default function Sidebar() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [deleteId, setDeleteId] = useState<string | null>(null)
 
-  // Fetch conversations on mount
+  // Fetch conversations only on first load (when not fetched yet)
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && !hasFetched) {
       dispatch(fetchConversations())
     }
-  }, [isAuthenticated, dispatch])
+  }, [isAuthenticated, hasFetched, dispatch])
+
+  // Manual refresh handler
+  const handleRefresh = () => {
+    dispatch(fetchConversations())
+  }
 
   const handleNewConversation = async () => {
     try {
@@ -159,14 +177,24 @@ export default function Sidebar() {
   return (
     <aside className={classes.sidebar}>
       <div className={classes.header}>
-        <Button
-          appearance="primary"
-          icon={<AddRegular />}
-          onClick={handleNewConversation}
-          style={{ width: '100%' }}
-        >
-          新建对话
-        </Button>
+        <div className={classes.headerButtons}>
+          <Button
+            appearance="primary"
+            icon={<AddRegular />}
+            onClick={handleNewConversation}
+            className={classes.newButton}
+          >
+            新建对话
+          </Button>
+          <Button
+            appearance="subtle"
+            icon={<ArrowSyncRegular />}
+            onClick={handleRefresh}
+            disabled={isLoading}
+            className={classes.refreshButton}
+            title="刷新对话列表"
+          />
+        </div>
       </div>
 
       <div className={classes.content}>
