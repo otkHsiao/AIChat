@@ -1,24 +1,30 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   makeStyles,
   tokens,
   Button,
   Spinner,
+  Dialog,
+  DialogTrigger,
+  DialogSurface,
+  DialogTitle,
+  DialogBody,
+  DialogActions,
+  DialogContent,
+  Input,
 } from '@fluentui/react-components'
 import { AddRegular } from '@fluentui/react-icons'
 
 import { useAppDispatch, useAppSelector } from '../../hooks/useAppDispatch'
 import {
-  setConversations,
+  fetchConversations,
+  createConversation,
+  renameConversation,
+  deleteConversation,
   setCurrentConversation,
-  addConversation,
-  setLoading,
 } from '../../features/conversations/conversationsSlice'
 import ConversationList from './ConversationList'
-import type { Conversation } from '../../types'
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
 
 const useStyles = makeStyles({
   sidebar: {
@@ -54,58 +60,28 @@ export default function Sidebar() {
   const { items, isLoading, currentId } = useAppSelector(
     (state) => state.conversations
   )
-  const token = useAppSelector((state) => state.auth.token)
+  const isAuthenticated = useAppSelector((state) => !!state.auth.token)
+
+  // State for rename dialog
+  const [renameDialogOpen, setRenameDialogOpen] = useState(false)
+  const [renameId, setRenameId] = useState<string | null>(null)
+  const [renameTitle, setRenameTitle] = useState('')
+
+  // State for delete confirmation dialog
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [deleteId, setDeleteId] = useState<string | null>(null)
 
   // Fetch conversations on mount
   useEffect(() => {
-    const fetchConversations = async () => {
-      if (!token) return
-
-      dispatch(setLoading(true))
-      try {
-        const response = await fetch(`${API_BASE_URL}/conversations`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        })
-        const data = await response.json()
-        if (data.success && data.data) {
-          dispatch(
-            setConversations({
-              items: data.data.conversations,
-              total: data.data.total,
-            })
-          )
-        }
-      } catch (error) {
-        console.error('Failed to fetch conversations:', error)
-      }
+    if (isAuthenticated) {
+      dispatch(fetchConversations())
     }
-
-    fetchConversations()
-  }, [token, dispatch])
+  }, [isAuthenticated, dispatch])
 
   const handleNewConversation = async () => {
-    if (!token) return
-
     try {
-      const response = await fetch(`${API_BASE_URL}/conversations`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          title: '新对话',
-        }),
-      })
-      const data = await response.json()
-      if (data.success && data.data) {
-        const newConversation: Conversation = data.data
-        dispatch(addConversation(newConversation))
-        dispatch(setCurrentConversation(newConversation.id))
-        navigate(`/chat/${newConversation.id}`)
-      }
+      const result = await dispatch(createConversation({ title: '新对话' })).unwrap()
+      navigate(`/chat/${result.id}`)
     } catch (error) {
       console.error('Failed to create conversation:', error)
     }
@@ -114,6 +90,50 @@ export default function Sidebar() {
   const handleSelectConversation = (id: string) => {
     dispatch(setCurrentConversation(id))
     navigate(`/chat/${id}`)
+  }
+
+  const handleRenameClick = (id: string, title: string) => {
+    setRenameId(id)
+    setRenameTitle(title)
+    setRenameDialogOpen(true)
+  }
+
+  const handleRenameConfirm = async () => {
+    if (!renameId || !renameTitle.trim()) return
+
+    try {
+      await dispatch(renameConversation({ id: renameId, title: renameTitle.trim() })).unwrap()
+    } catch (error) {
+      console.error('Failed to rename conversation:', error)
+    } finally {
+      setRenameDialogOpen(false)
+      setRenameId(null)
+      setRenameTitle('')
+    }
+  }
+
+  const handleDeleteClick = (id: string) => {
+    setDeleteId(id)
+    setDeleteDialogOpen(true)
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteId) return
+
+    const wasCurrentConversation = currentId === deleteId
+
+    try {
+      await dispatch(deleteConversation(deleteId)).unwrap()
+      // If we deleted the current conversation, navigate to home
+      if (wasCurrentConversation) {
+        navigate('/')
+      }
+    } catch (error) {
+      console.error('Failed to delete conversation:', error)
+    } finally {
+      setDeleteDialogOpen(false)
+      setDeleteId(null)
+    }
   }
 
   return (
@@ -139,9 +159,61 @@ export default function Sidebar() {
             conversations={items}
             currentId={currentId}
             onSelect={handleSelectConversation}
+            onRename={handleRenameClick}
+            onDelete={handleDeleteClick}
           />
         )}
       </div>
+
+      {/* Rename Dialog */}
+      <Dialog open={renameDialogOpen} onOpenChange={(_, data) => setRenameDialogOpen(data.open)}>
+        <DialogSurface>
+          <DialogBody>
+            <DialogTitle>重命名对话</DialogTitle>
+            <DialogContent>
+              <Input
+                value={renameTitle}
+                onChange={(_, data) => setRenameTitle(data.value)}
+                placeholder="输入新名称"
+                style={{ width: '100%', marginTop: '8px' }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleRenameConfirm()
+                  }
+                }}
+              />
+            </DialogContent>
+            <DialogActions>
+              <DialogTrigger disableButtonEnhancement>
+                <Button appearance="secondary">取消</Button>
+              </DialogTrigger>
+              <Button appearance="primary" onClick={handleRenameConfirm}>
+                确定
+              </Button>
+            </DialogActions>
+          </DialogBody>
+        </DialogSurface>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={(_, data) => setDeleteDialogOpen(data.open)}>
+        <DialogSurface>
+          <DialogBody>
+            <DialogTitle>删除对话</DialogTitle>
+            <DialogContent>
+              确定要删除这个对话吗？此操作无法撤销。
+            </DialogContent>
+            <DialogActions>
+              <DialogTrigger disableButtonEnhancement>
+                <Button appearance="secondary">取消</Button>
+              </DialogTrigger>
+              <Button appearance="primary" onClick={handleDeleteConfirm}>
+                删除
+              </Button>
+            </DialogActions>
+          </DialogBody>
+        </DialogSurface>
+      </Dialog>
     </aside>
   )
 }

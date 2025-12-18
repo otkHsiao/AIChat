@@ -1,5 +1,169 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit'
+import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit'
 import type { Conversation } from '../../types'
+import type { RootState } from '../../store'
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
+
+// API response wrapper type
+interface ApiResponse<T> {
+  success: boolean
+  data: T
+}
+
+// Conversation list response
+interface ConversationListData {
+  conversations: Conversation[]
+  total: number
+  limit: number
+  offset: number
+}
+
+// ============ Async Thunks ============
+
+// Fetch all conversations
+export const fetchConversations = createAsyncThunk<
+  { items: Conversation[]; total: number },
+  { limit?: number; offset?: number } | void,
+  { state: RootState; rejectValue: string }
+>('conversations/fetchConversations', async (params, { getState, rejectWithValue }) => {
+  const token = getState().auth.token
+  if (!token) {
+    return rejectWithValue('未登录')
+  }
+
+  const limit = params?.limit ?? 50
+  const offset = params?.offset ?? 0
+
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/conversations?limit=${limit}&offset=${offset}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    )
+
+    if (!response.ok) {
+      throw new Error('获取对话列表失败')
+    }
+
+    const data: ApiResponse<ConversationListData> = await response.json()
+    if (data.success && data.data) {
+      return {
+        items: data.data.conversations,
+        total: data.data.total,
+      }
+    }
+    throw new Error('获取对话列表失败')
+  } catch (error) {
+    return rejectWithValue(error instanceof Error ? error.message : '获取对话列表失败')
+  }
+})
+
+// Create a new conversation
+export const createConversation = createAsyncThunk<
+  Conversation,
+  { title?: string; systemPrompt?: string },
+  { state: RootState; rejectValue: string }
+>('conversations/createConversation', async (params, { getState, rejectWithValue }) => {
+  const token = getState().auth.token
+  if (!token) {
+    return rejectWithValue('未登录')
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/conversations`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        title: params.title ?? '新对话',
+        systemPrompt: params.systemPrompt,
+      }),
+    })
+
+    if (!response.ok) {
+      throw new Error('创建对话失败')
+    }
+
+    const data: ApiResponse<Conversation> = await response.json()
+    if (data.success && data.data) {
+      return data.data
+    }
+    throw new Error('创建对话失败')
+  } catch (error) {
+    return rejectWithValue(error instanceof Error ? error.message : '创建对话失败')
+  }
+})
+
+// Rename a conversation
+export const renameConversation = createAsyncThunk<
+  Conversation,
+  { id: string; title: string },
+  { state: RootState; rejectValue: string }
+>('conversations/renameConversation', async ({ id, title }, { getState, rejectWithValue }) => {
+  const token = getState().auth.token
+  if (!token) {
+    return rejectWithValue('未登录')
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/conversations/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ title }),
+    })
+
+    if (!response.ok) {
+      throw new Error('重命名对话失败')
+    }
+
+    const data: ApiResponse<Conversation> = await response.json()
+    if (data.success && data.data) {
+      return data.data
+    }
+    throw new Error('重命名对话失败')
+  } catch (error) {
+    return rejectWithValue(error instanceof Error ? error.message : '重命名对话失败')
+  }
+})
+
+// Delete a conversation
+export const deleteConversation = createAsyncThunk<
+  string,
+  string,
+  { state: RootState; rejectValue: string }
+>('conversations/deleteConversation', async (id, { getState, rejectWithValue }) => {
+  const token = getState().auth.token
+  if (!token) {
+    return rejectWithValue('未登录')
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/conversations/${id}`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+
+    if (!response.ok) {
+      throw new Error('删除对话失败')
+    }
+
+    return id
+  } catch (error) {
+    return rejectWithValue(error instanceof Error ? error.message : '删除对话失败')
+  }
+})
+
+// ============ Slice ============
 
 interface ConversationsState {
   items: Conversation[]
@@ -21,55 +185,12 @@ const conversationsSlice = createSlice({
   name: 'conversations',
   initialState,
   reducers: {
-    setConversations: (
-      state,
-      action: PayloadAction<{ items: Conversation[]; total: number }>
-    ) => {
-      state.items = action.payload.items
-      state.total = action.payload.total
-      state.isLoading = false
-      state.error = null
-    },
-
-    addConversation: (state, action: PayloadAction<Conversation>) => {
-      state.items.unshift(action.payload)
-      state.total += 1
-    },
-
-    updateConversation: (
-      state,
-      action: PayloadAction<{ id: string; updates: Partial<Conversation> }>
-    ) => {
-      const index = state.items.findIndex(
-        (conv) => conv.id === action.payload.id
-      )
-      if (index !== -1) {
-        state.items[index] = {
-          ...state.items[index],
-          ...action.payload.updates,
-        }
-      }
-    },
-
-    removeConversation: (state, action: PayloadAction<string>) => {
-      state.items = state.items.filter((conv) => conv.id !== action.payload)
-      state.total -= 1
-      if (state.currentId === action.payload) {
-        state.currentId = null
-      }
-    },
-
     setCurrentConversation: (state, action: PayloadAction<string | null>) => {
       state.currentId = action.payload
     },
 
-    setLoading: (state, action: PayloadAction<boolean>) => {
-      state.isLoading = action.payload
-    },
-
-    setError: (state, action: PayloadAction<string>) => {
-      state.error = action.payload
-      state.isLoading = false
+    clearError: (state) => {
+      state.error = null
     },
 
     clearConversations: (state) => {
@@ -79,16 +200,74 @@ const conversationsSlice = createSlice({
       state.error = null
     },
   },
+  extraReducers: (builder) => {
+    // Fetch conversations
+    builder
+      .addCase(fetchConversations.pending, (state) => {
+        state.isLoading = true
+        state.error = null
+      })
+      .addCase(fetchConversations.fulfilled, (state, action) => {
+        state.items = action.payload.items
+        state.total = action.payload.total
+        state.isLoading = false
+        state.error = null
+      })
+      .addCase(fetchConversations.rejected, (state, action) => {
+        state.isLoading = false
+        state.error = action.payload ?? '获取对话列表失败'
+      })
+
+    // Create conversation
+    builder
+      .addCase(createConversation.pending, (state) => {
+        state.error = null
+      })
+      .addCase(createConversation.fulfilled, (state, action) => {
+        state.items.unshift(action.payload)
+        state.total += 1
+        state.currentId = action.payload.id
+      })
+      .addCase(createConversation.rejected, (state, action) => {
+        state.error = action.payload ?? '创建对话失败'
+      })
+
+    // Rename conversation
+    builder
+      .addCase(renameConversation.pending, (state) => {
+        state.error = null
+      })
+      .addCase(renameConversation.fulfilled, (state, action) => {
+        const index = state.items.findIndex((conv) => conv.id === action.payload.id)
+        if (index !== -1) {
+          state.items[index] = action.payload
+        }
+      })
+      .addCase(renameConversation.rejected, (state, action) => {
+        state.error = action.payload ?? '重命名对话失败'
+      })
+
+    // Delete conversation
+    builder
+      .addCase(deleteConversation.pending, (state) => {
+        state.error = null
+      })
+      .addCase(deleteConversation.fulfilled, (state, action) => {
+        state.items = state.items.filter((conv) => conv.id !== action.payload)
+        state.total -= 1
+        if (state.currentId === action.payload) {
+          state.currentId = null
+        }
+      })
+      .addCase(deleteConversation.rejected, (state, action) => {
+        state.error = action.payload ?? '删除对话失败'
+      })
+  },
 })
 
 export const {
-  setConversations,
-  addConversation,
-  updateConversation,
-  removeConversation,
   setCurrentConversation,
-  setLoading,
-  setError,
+  clearError,
   clearConversations,
 } = conversationsSlice.actions
 
