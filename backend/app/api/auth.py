@@ -1,6 +1,8 @@
 """Authentication API routes."""
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Request, status
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from app.core.dependencies import CurrentUserId, CosmosDB
 from app.core.security import (
@@ -21,50 +23,65 @@ from app.schemas.auth import (
 )
 
 router = APIRouter()
+limiter = Limiter(key_func=get_remote_address)
 
 
-@router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
-async def register(user_data: UserCreate, db: CosmosDB) -> TokenResponse:
+# 注册功能已暂时关闭
+# @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
+# @limiter.limit("5/minute")
+# async def register(request: Request, user_data: UserCreate, db: CosmosDB) -> TokenResponse:
+#     """
+#     Register a new user.
+#
+#     Creates a new user account and returns authentication tokens.
+#     """
+#     # Check if email already exists
+#     existing_user = await db.get_user_by_email(user_data.email)
+#     if existing_user:
+#         raise HTTPException(
+#             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+#             detail="该邮箱已被注册",
+#         )
+#
+#     # Create user
+#     user = await db.create_user({
+#         "email": user_data.email,
+#         "username": user_data.username,
+#         "passwordHash": get_password_hash(user_data.password),
+#     })
+#
+#     # Generate tokens
+#     access_token = create_access_token(subject=user["id"])
+#     refresh_token = create_refresh_token(subject=user["id"])
+#
+#     return TokenResponse(
+#         user=UserResponse(
+#             id=user["id"],
+#             email=user["email"],
+#             username=user["username"],
+#             createdAt=user["createdAt"],
+#             settings=user.get("settings"),
+#         ),
+#         accessToken=access_token,
+#         refreshToken=refresh_token,
+#         expiresIn=86400,
+#     )
+
+
+@router.post("/register", response_model=dict, status_code=status.HTTP_403_FORBIDDEN)
+async def register_disabled(request: Request) -> dict:
     """
-    Register a new user.
-    
-    Creates a new user account and returns authentication tokens.
+    注册功能已暂时关闭。
     """
-    # Check if email already exists
-    existing_user = await db.get_user_by_email(user_data.email)
-    if existing_user:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="该邮箱已被注册",
-        )
-
-    # Create user
-    user = await db.create_user({
-        "email": user_data.email,
-        "username": user_data.username,
-        "passwordHash": get_password_hash(user_data.password),
-    })
-
-    # Generate tokens
-    access_token = create_access_token(subject=user["id"])
-    refresh_token = create_refresh_token(subject=user["id"])
-
-    return TokenResponse(
-        user=UserResponse(
-            id=user["id"],
-            email=user["email"],
-            username=user["username"],
-            createdAt=user["createdAt"],
-            settings=user.get("settings"),
-        ),
-        accessToken=access_token,
-        refreshToken=refresh_token,
-        expiresIn=86400,
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="注册功能已暂时关闭，请联系管理员获取账户",
     )
 
 
 @router.post("/login", response_model=TokenResponse)
-async def login(credentials: UserLogin, db: CosmosDB) -> TokenResponse:
+@limiter.limit("10/minute")
+async def login(request: Request, credentials: UserLogin, db: CosmosDB) -> TokenResponse:
     """
     Login with email and password.
     

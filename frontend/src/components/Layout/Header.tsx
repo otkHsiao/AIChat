@@ -32,11 +32,21 @@ const useStyles = makeStyles({
     padding: `${tokens.spacingVerticalS} ${tokens.spacingHorizontalM}`,
     borderBottom: `1px solid ${tokens.colorNeutralStroke1}`,
     backgroundColor: tokens.colorNeutralBackground1,
+    // 移动端安全区域适配
+    paddingTop: `max(${tokens.spacingVerticalS}, env(safe-area-inset-top))`,
+    '@media (max-width: 480px)': {
+      padding: `${tokens.spacingVerticalXS} ${tokens.spacingHorizontalS}`,
+      paddingTop: `max(${tokens.spacingVerticalXS}, env(safe-area-inset-top))`,
+    },
   },
   title: {
     marginLeft: tokens.spacingHorizontalM,
     fontSize: tokens.fontSizeBase400,
     fontWeight: tokens.fontWeightSemibold,
+    '@media (max-width: 480px)': {
+      marginLeft: tokens.spacingHorizontalS,
+      fontSize: tokens.fontSizeBase300,
+    },
   },
   leftSection: {
     display: 'flex',
@@ -46,6 +56,9 @@ const useStyles = makeStyles({
     display: 'flex',
     alignItems: 'center',
     gap: tokens.spacingHorizontalS,
+    '@media (max-width: 480px)': {
+      gap: tokens.spacingHorizontalXS,
+    },
   },
 })
 

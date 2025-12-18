@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { makeStyles, tokens, Text } from '@fluentui/react-components'
 
 import { useAppDispatch, useAppSelector } from '../../store'
@@ -6,6 +6,8 @@ import { setMessages, clearMessages } from '../../features/chat/chatSlice'
 import { useStreamingChat } from '../../hooks/useStreamingChat'
 import MessageList from './MessageList'
 import MessageInput from './MessageInput'
+import { ChatSkeleton } from '../Skeleton'
+import { useToast } from '../Toast'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
 
@@ -20,11 +22,23 @@ const useStyles = makeStyles({
     flex: 1,
     overflow: 'auto',
     padding: tokens.spacingVerticalL,
+    // 移动端适配
+    '@media (max-width: 768px)': {
+      padding: tokens.spacingVerticalM,
+    },
+    '@media (max-width: 480px)': {
+      padding: tokens.spacingVerticalS,
+    },
   },
   inputArea: {
     padding: tokens.spacingVerticalM,
     borderTop: `1px solid ${tokens.colorNeutralStroke1}`,
     backgroundColor: tokens.colorNeutralBackground1,
+    // 移动端适配 - 增加底部安全区域
+    '@media (max-width: 768px)': {
+      padding: `${tokens.spacingVerticalS} ${tokens.spacingHorizontalS}`,
+      paddingBottom: `max(${tokens.spacingVerticalS}, env(safe-area-inset-bottom))`,
+    },
   },
   emptyState: {
     flex: 1,
@@ -34,6 +48,12 @@ const useStyles = makeStyles({
     justifyContent: 'center',
     color: tokens.colorNeutralForeground3,
     gap: tokens.spacingVerticalM,
+    padding: tokens.spacingHorizontalL,
+    textAlign: 'center',
+    // 移动端适配
+    '@media (max-width: 480px)': {
+      padding: tokens.spacingHorizontalM,
+    },
   },
   loading: {
     display: 'flex',
@@ -46,6 +66,8 @@ export default function ChatContainer() {
   const classes = useStyles()
   const dispatch = useAppDispatch()
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false)
+  const { showError } = useToast()
 
   const currentId = useAppSelector((state) => state.conversations.currentId)
   const { messages, isStreaming, streamingContent, error } = useAppSelector(
@@ -66,6 +88,7 @@ export default function ChatContainer() {
         return
       }
 
+      setIsLoadingMessages(true)
       try {
         const response = await fetch(
           `${API_BASE_URL}/conversations/${currentId}/messages`,
@@ -79,13 +102,16 @@ export default function ChatContainer() {
         if (data.success && data.data) {
           dispatch(setMessages(data.data.messages))
         }
-      } catch (error) {
-        console.error('Failed to fetch messages:', error)
+      } catch (err) {
+        console.error('Failed to fetch messages:', err)
+        showError('加载失败', '无法加载消息历史')
+      } finally {
+        setIsLoadingMessages(false)
       }
     }
 
     fetchMessages()
-  }, [currentId, token, dispatch])
+  }, [currentId, token, dispatch, showError])
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -111,18 +137,22 @@ export default function ChatContainer() {
   return (
     <div className={classes.container}>
       <div className={classes.messageArea}>
-        <MessageList
-          messages={messages}
-          isStreaming={isStreaming}
-          streamingContent={streamingContent}
-        />
+        {isLoadingMessages ? (
+          <ChatSkeleton />
+        ) : (
+          <MessageList
+            messages={messages}
+            isStreaming={isStreaming}
+            streamingContent={streamingContent}
+          />
+        )}
         <div ref={messagesEndRef} />
       </div>
 
       <div className={classes.inputArea}>
         <MessageInput
           onSend={(content, files) => sendMessage({ content, files })}
-          disabled={isStreaming}
+          disabled={isStreaming || isLoadingMessages}
         />
         {error && (
           <Text style={{ color: tokens.colorPaletteRedForeground1, marginTop: 8 }}>

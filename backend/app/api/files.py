@@ -1,16 +1,21 @@
 """File upload API routes."""
 
-from fastapi import APIRouter, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, File, HTTPException, Request, UploadFile, status
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from app.core.dependencies import CurrentUserId
 from app.schemas.file import FileDeleteResponse, FileUploadResponse
 from app.services.blob_storage import get_blob_service
 
 router = APIRouter()
+limiter = Limiter(key_func=get_remote_address)
 
 
 @router.post("/upload", response_model=dict, status_code=status.HTTP_201_CREATED)
+@limiter.limit("30/minute")
 async def upload_file(
+    request: Request,
     user_id: CurrentUserId,
     file: UploadFile = File(...),
 ) -> dict:

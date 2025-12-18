@@ -2,9 +2,12 @@
 
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Query, Request, status
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from app.core.dependencies import CurrentUserId, CosmosDB
+from app.core.sanitizer import sanitize_conversation_title
 from app.schemas.conversation import (
     ConversationCreate,
     ConversationDeleteResponse,
@@ -14,10 +17,13 @@ from app.schemas.conversation import (
 )
 
 router = APIRouter()
+limiter = Limiter(key_func=get_remote_address)
 
 
 @router.get("", response_model=dict)
+@limiter.limit("60/minute")
 async def list_conversations(
+    request: Request,
     user_id: CurrentUserId,
     db: CosmosDB,
     limit: int = Query(default=20, ge=1, le=100),
@@ -50,7 +56,9 @@ async def list_conversations(
 
 
 @router.post("", response_model=dict, status_code=status.HTTP_201_CREATED)
+@limiter.limit("30/minute")
 async def create_conversation(
+    request: Request,
     conversation_data: ConversationCreate,
     user_id: CurrentUserId,
     db: CosmosDB,
@@ -58,9 +66,14 @@ async def create_conversation(
     """
     Create a new conversation.
     """
+    # Sanitize input
+    sanitized_data = conversation_data.model_dump()
+    if sanitized_data.get("title"):
+        sanitized_data["title"] = sanitize_conversation_title(sanitized_data["title"])
+    
     conversation = await db.create_conversation(
         user_id=user_id,
-        conversation_data=conversation_data.model_dump(),
+        conversation_data=sanitized_data,
     )
 
     return {

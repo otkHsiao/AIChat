@@ -70,3 +70,59 @@ body {
 :focus:not(:focus-visible) {
   outline: none;
 }
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  /* 触摸设备优化 */
+  button,
+  input,
+  select,
+  textarea {
+    /* 防止 iOS 上输入框自动缩放 */
+    font-size: 16px !important;
+  }
+
+  /* 增加触控目标大小 */
+  button,
+  [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+@media (max-width: 480px) {
+  /* 小屏幕滚动条 */
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+
+  /* 防止文字选中时的高亮影响体验 */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* 安全区域适配 (刘海屏等) */
+@supports (padding: env(safe-area-inset-bottom)) {
+  body {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+}
+
+/* 横屏模式优化 */
+@media (orientation: landscape) and (max-height: 500px) {
+  /* 在横屏模式下减少垂直间距 */
+  body {
+    font-size: 14px;
+  }
+}
+
+/* 打印样式 */
+@media print {
+  * {
+    background: white !important;
+    color: black !important;
+  }
+}

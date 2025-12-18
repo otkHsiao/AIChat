@@ -4,7 +4,6 @@ import {
   makeStyles,
   tokens,
   Button,
-  Spinner,
   Dialog,
   DialogTrigger,
   DialogSurface,
@@ -24,17 +23,27 @@ import {
   deleteConversation,
   setCurrentConversation,
 } from '../../features/conversations/conversationsSlice'
+import { closeSidebarOnMobile } from '../../features/ui/uiSlice'
 import ConversationList from './ConversationList'
+import { SidebarSkeleton } from '../Skeleton'
+import { useToast } from '../Toast'
 
 const useStyles = makeStyles({
   sidebar: {
     width: '280px',
     minWidth: '280px',
+    maxWidth: '100vw', // 移动端不超过屏幕宽度
     height: '100%',
     display: 'flex',
     flexDirection: 'column',
     backgroundColor: tokens.colorNeutralBackground3,
     borderRight: `1px solid ${tokens.colorNeutralStroke1}`,
+    // 移动端响应式
+    '@media (max-width: 768px)': {
+      width: '85vw',
+      minWidth: 'auto',
+      maxWidth: '320px',
+    },
   },
   header: {
     padding: tokens.spacingVerticalM,
@@ -56,6 +65,7 @@ export default function Sidebar() {
   const classes = useStyles()
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
+  const { showSuccess, showError } = useToast()
 
   const { items, isLoading, currentId } = useAppSelector(
     (state) => state.conversations
@@ -82,14 +92,20 @@ export default function Sidebar() {
     try {
       const result = await dispatch(createConversation({ title: '新对话' })).unwrap()
       navigate(`/chat/${result.id}`)
+      // 移动端创建后自动关闭侧边栏
+      dispatch(closeSidebarOnMobile())
+      showSuccess('创建成功', '新对话已创建')
     } catch (error) {
       console.error('Failed to create conversation:', error)
+      showError('创建失败', '无法创建新对话，请重试')
     }
   }
 
   const handleSelectConversation = (id: string) => {
     dispatch(setCurrentConversation(id))
     navigate(`/chat/${id}`)
+    // 移动端选择后自动关闭侧边栏
+    dispatch(closeSidebarOnMobile())
   }
 
   const handleRenameClick = (id: string, title: string) => {
@@ -103,8 +119,10 @@ export default function Sidebar() {
 
     try {
       await dispatch(renameConversation({ id: renameId, title: renameTitle.trim() })).unwrap()
+      showSuccess('重命名成功')
     } catch (error) {
       console.error('Failed to rename conversation:', error)
+      showError('重命名失败', '无法重命名对话，请重试')
     } finally {
       setRenameDialogOpen(false)
       setRenameId(null)
@@ -128,8 +146,10 @@ export default function Sidebar() {
       if (wasCurrentConversation) {
         navigate('/')
       }
+      showSuccess('删除成功', '对话已删除')
     } catch (error) {
       console.error('Failed to delete conversation:', error)
+      showError('删除失败', '无法删除对话，请重试')
     } finally {
       setDeleteDialogOpen(false)
       setDeleteId(null)
@@ -151,9 +171,7 @@ export default function Sidebar() {
 
       <div className={classes.content}>
         {isLoading ? (
-          <div className={classes.loading}>
-            <Spinner size="small" />
-          </div>
+          <SidebarSkeleton />
         ) : (
           <ConversationList
             conversations={items}

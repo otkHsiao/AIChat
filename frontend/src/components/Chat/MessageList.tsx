@@ -9,6 +9,16 @@ const useStyles = makeStyles({
     gap: tokens.spacingVerticalL,
     maxWidth: '800px',
     margin: '0 auto',
+    width: '100%',
+    boxSizing: 'border-box',
+    // 移动端适配
+    '@media (max-width: 768px)': {
+      gap: tokens.spacingVerticalM,
+      maxWidth: '100%',
+    },
+    '@media (max-width: 480px)': {
+      gap: tokens.spacingVerticalS,
+    },
   },
 })
 

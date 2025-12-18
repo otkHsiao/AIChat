@@ -4,6 +4,7 @@ interface UiState {
   sidebarOpen: boolean
   theme: 'light' | 'dark'
   settingsOpen: boolean
+  isMobileView: boolean
 }
 
 // Get theme from localStorage or system preference
@@ -19,10 +20,20 @@ const getInitialTheme = (): 'light' | 'dark' => {
   return 'light'
 }
 
+// Check if initial view is mobile
+const getInitialMobileView = (): boolean => {
+  if (typeof window !== 'undefined') {
+    return window.innerWidth <= 768
+  }
+  return false
+}
+
 const initialState: UiState = {
-  sidebarOpen: true,
+  // 移动端默认关闭侧边栏，桌面端默认打开
+  sidebarOpen: !getInitialMobileView(),
   theme: getInitialTheme(),
   settingsOpen: false,
+  isMobileView: getInitialMobileView(),
 }
 
 const uiSlice = createSlice({
@@ -55,6 +66,21 @@ const uiSlice = createSlice({
     toggleSettings: (state) => {
       state.settingsOpen = !state.settingsOpen
     },
+
+    setMobileView: (state, action: PayloadAction<boolean>) => {
+      state.isMobileView = action.payload
+      // 切换到移动视图时自动关闭侧边栏
+      if (action.payload && state.sidebarOpen) {
+        state.sidebarOpen = false
+      }
+    },
+
+    // 移动端选择对话后自动关闭侧边栏
+    closeSidebarOnMobile: (state) => {
+      if (state.isMobileView) {
+        state.sidebarOpen = false
+      }
+    },
   },
 })
 
@@ -65,6 +91,8 @@ export const {
   toggleTheme,
   setSettingsOpen,
   toggleSettings,
+  setMobileView,
+  closeSidebarOnMobile,
 } = uiSlice.actions
 
 export default uiSlice.reducer

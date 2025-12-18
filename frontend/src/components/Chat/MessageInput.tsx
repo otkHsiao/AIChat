@@ -21,31 +21,56 @@ const useStyles = makeStyles({
     maxWidth: '800px',
     margin: '0 auto',
     width: '100%',
+    padding: `0 ${tokens.spacingHorizontalS}`,
+    boxSizing: 'border-box',
+    // 移动端适配
+    '@media (max-width: 768px)': {
+      padding: `0 ${tokens.spacingHorizontalXS}`,
+    },
   },
   inputRow: {
     display: 'flex',
     gap: tokens.spacingHorizontalS,
     alignItems: 'flex-end',
+    // 移动端适配
+    '@media (max-width: 480px)': {
+      gap: tokens.spacingHorizontalXS,
+    },
   },
   textareaWrapper: {
     flex: 1,
     position: 'relative',
+    minWidth: 0, // 允许 flex 收缩
   },
   textarea: {
     width: '100%',
     minHeight: '56px',
     maxHeight: '200px',
     resize: 'none',
+    // 移动端适配
+    '@media (max-width: 480px)': {
+      minHeight: '44px',
+      fontSize: '16px', // 防止 iOS 自动缩放
+    },
   },
   actions: {
     display: 'flex',
     gap: tokens.spacingHorizontalXS,
     alignItems: 'center',
+    flexShrink: 0,
+    // 移动端适配：隐藏文字只显示图标
+    '@media (max-width: 480px)': {
+      gap: '2px',
+    },
   },
   attachments: {
     display: 'flex',
     flexWrap: 'wrap',
     gap: tokens.spacingHorizontalS,
+    // 移动端适配
+    '@media (max-width: 480px)': {
+      gap: tokens.spacingHorizontalXS,
+    },
   },
   attachmentChip: {
     display: 'flex',
@@ -55,12 +80,19 @@ const useStyles = makeStyles({
     backgroundColor: tokens.colorNeutralBackground4,
     borderRadius: tokens.borderRadiusSmall,
     fontSize: '12px',
+    maxWidth: '150px',
+    overflow: 'hidden',
   },
   imagePreview: {
     width: '60px',
     height: '60px',
     objectFit: 'cover',
     borderRadius: tokens.borderRadiusSmall,
+    // 移动端适配
+    '@media (max-width: 480px)': {
+      width: '48px',
+      height: '48px',
+    },
   },
   removeButton: {
     minWidth: 'auto',
@@ -70,6 +102,24 @@ const useStyles = makeStyles({
     fontSize: '12px',
     color: tokens.colorNeutralForeground3,
     textAlign: 'center',
+    // 移动端隐藏提示
+    '@media (max-width: 480px)': {
+      display: 'none',
+    },
+  },
+  // 移动端发送按钮样式
+  sendButton: {
+    '@media (max-width: 480px)': {
+      minWidth: 'auto',
+      paddingLeft: tokens.spacingHorizontalS,
+      paddingRight: tokens.spacingHorizontalS,
+    },
+  },
+  // 移动端隐藏按钮文字
+  sendButtonText: {
+    '@media (max-width: 480px)': {
+      display: 'none',
+    },
   },
 })
 
@@ -217,8 +267,9 @@ export default function MessageInput({ onSend, disabled }: MessageInputProps) {
             icon={<Send24Regular />}
             onClick={handleSend}
             disabled={disabled || (!content.trim() && attachments.length === 0)}
+            className={classes.sendButton}
           >
-            发送
+            <span className={classes.sendButtonText}>发送</span>
           </Button>
         </div>
       </div>

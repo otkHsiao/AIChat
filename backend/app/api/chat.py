@@ -3,8 +3,10 @@
 import json
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Query, Request, status
 from fastapi.responses import StreamingResponse
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from app.core.dependencies import CurrentUserId, CosmosDB
 from app.schemas.message import (
@@ -17,10 +19,13 @@ from app.services.azure_openai import get_openai_service
 from app.services.blob_storage import get_blob_service
 
 router = APIRouter()
+limiter = Limiter(key_func=get_remote_address)
 
 
 @router.get("/conversations/{conversation_id}/messages", response_model=dict)
+@limiter.limit("60/minute")
 async def get_messages(
+    request: Request,
     conversation_id: str,
     user_id: CurrentUserId,
     db: CosmosDB,
@@ -58,7 +63,9 @@ async def get_messages(
 
 
 @router.post("/conversations/{conversation_id}/messages", response_model=dict)
+@limiter.limit("20/minute")
 async def send_message(
+    request: Request,
     conversation_id: str,
     chat_request: ChatRequest,
     user_id: CurrentUserId,
@@ -142,7 +149,9 @@ async def send_message(
 
 
 @router.post("/conversations/{conversation_id}/messages/stream")
+@limiter.limit("20/minute")
 async def send_message_stream(
+    request: Request,
     conversation_id: str,
     chat_request: ChatRequest,
     user_id: CurrentUserId,
