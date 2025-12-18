@@ -1,4 +1,4 @@
-import { createContext, useContext, useCallback, useState, ReactNode } from 'react'
+import { createContext, useContext, useCallback, ReactNode } from 'react'
 import {
   Toaster,
   useToastController,

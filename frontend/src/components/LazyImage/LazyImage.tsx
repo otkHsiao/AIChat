@@ -39,7 +39,7 @@ const useStyles = makeStyles({
 })
 
 interface LazyImageProps {
-  src: string
+  src: string | undefined
   alt: string
   className?: string
   width?: number | string
@@ -143,7 +143,7 @@ export function LazyImage({
       )}
 
       {/* Actual image - only load src when in view */}
-      {isInView && (
+      {isInView && src && (
         <img
           ref={imgRef}
           src={src}
