@@ -1,7 +1,13 @@
 """Message related schemas."""
 
+# List: 列表类型注解
+# Literal: 字面量类型注解，限制值只能是指定的字符串之一（如 "user" | "assistant"）
+# Optional: 可选类型注解
 from typing import List, Literal, Optional
 
+# BaseModel: Pydantic 的数据模型基类
+# Field: 字段声明器，用于定义字段的验证规则
+# model_validator: 模型级验证器装饰器，用于跨字段验证
 from pydantic import BaseModel, Field, model_validator
 
 

@@ -27,8 +27,13 @@ XSS 攻击示例：
 - 清理函数应该在数据进入系统时立即调用
 """
 
+# html: Python 标准库，提供 HTML 实体转义功能（防止 XSS 攻击）
 import html
+
+# re: Python 标准库，提供正则表达式支持（用于文本模式匹配和替换）
 import re
+
+# Optional: 类型注解，表示可选值
 from typing import Optional
 
 

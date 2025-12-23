@@ -28,13 +28,28 @@ Azure Blob Storage 概念：
 - 只允许上传白名单中的文件类型
 """
 
+# datetime: 日期时间类，用于处理时间戳
+# timedelta: 时间差类，用于计算 SAS Token 过期时间
+# timezone: 时区类，用于 UTC 时间处理
 from datetime import datetime, timedelta, timezone
+
+# Any: 任意类型注解
+# Dict: 字典类型注解
+# Optional: 可选类型注解
 from typing import Any, Dict, Optional
+
+# uuid: Python 标准库，用于生成唯一的文件 ID
 import uuid
+
+# mimetypes: Python 标准库，用于根据 MIME 类型推断文件扩展名
 import mimetypes
 
+# BlobServiceClient: Azure Blob Storage 服务客户端
+# BlobSasPermissions: SAS Token 权限配置类
+# generate_blob_sas: 生成 Blob 级别 SAS Token 的函数
 from azure.storage.blob import BlobServiceClient, BlobSasPermissions, generate_blob_sas
 
+# get_settings: 获取应用配置的函数
 from app.core.config import get_settings
 
 

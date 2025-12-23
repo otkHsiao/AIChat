@@ -1,7 +1,9 @@
 """File upload related schemas."""
 
+# Literal: 字面量类型注解，限制值只能是指定的字符串之一
 from typing import Literal
 
+# BaseModel: Pydantic 的数据模型基类
 from pydantic import BaseModel
 
 

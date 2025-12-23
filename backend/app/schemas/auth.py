@@ -1,7 +1,11 @@
 """Authentication related schemas."""
 
+# Optional: 类型注解，表示可选值
 from typing import Optional
 
+# BaseModel: Pydantic 的数据模型基类，提供数据验证和序列化功能
+# EmailStr: Pydantic 的邮箱类型，自动验证邮箱格式
+# Field: 字段声明器，用于定义字段的验证规则和元数据
 from pydantic import BaseModel, EmailStr, Field
 
 

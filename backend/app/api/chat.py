@@ -54,22 +54,47 @@ SSE 事件类型：
 - 文本文件：下载内容后作为上下文传给 AI
 """
 
+# json: Python 标准库，用于 JSON 序列化（SSE 事件数据格式化）
 import json
+
+# Optional: 类型注解，表示可选参数
 from typing import Optional
 
+# APIRouter: 创建路由器实例
+# HTTPException: HTTP 异常类，用于返回错误响应
+# Query: 查询参数声明器，用于定义 URL 查询参数
+# Request: HTTP 请求对象
+# status: HTTP 状态码常量集合
 from fastapi import APIRouter, HTTPException, Query, Request, status
+
+# StreamingResponse: 流式响应类，用于 SSE（服务器发送事件）
 from fastapi.responses import StreamingResponse
+
+# Limiter: 速率限制器类
 from slowapi import Limiter
+
+# get_remote_address: 获取客户端 IP 地址的工具函数
 from slowapi.util import get_remote_address
 
+# CurrentUserId: 当前认证用户 ID 的类型别名（依赖注入）
+# CosmosDB: Cosmos DB 服务的类型别名（依赖注入）
 from app.core.dependencies import CurrentUserId, CosmosDB
+
+# ChatRequest: 聊天请求的数据模型（包含消息内容和附件）
+# ChatResponse: 非流式聊天响应的数据模型
+# MessageListResponse: 消息列表响应的数据模型（包含分页信息）
+# MessageResponse: 单条消息响应的数据模型
 from app.schemas.message import (
     ChatRequest,
     ChatResponse,
     MessageListResponse,
     MessageResponse,
 )
+
+# get_openai_service: 获取 Azure OpenAI 服务的单例实例
 from app.services.azure_openai import get_openai_service
+
+# get_blob_service: 获取 Azure Blob Storage 服务的单例实例
 from app.services.blob_storage import get_blob_service
 
 # 创建路由器实例

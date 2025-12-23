@@ -58,13 +58,27 @@ Cosmos DB 是一个全球分布式、多模型数据库服务，本应用使用�
 3. 同一分区内的查询效率最高
 """
 
+# Any: 任意类型注解
+# Dict: 字典类型注解
+# List: 列表类型注解
+# Optional: 可选类型注解
 from typing import Any, Dict, List, Optional
+
+# datetime: 日期时间类，用于处理时间戳
+# timezone: 时区类，用于 UTC 时间处理
 from datetime import datetime, timezone
+
+# uuid: Python 标准库，用于生成唯一的 ID（用户 ID、对话 ID、消息 ID）
 import uuid
 
+# CosmosClient: Azure Cosmos DB 客户端类
+# PartitionKey: 分区键定义类，用于创建容器时指定分区键
 from azure.cosmos import CosmosClient, PartitionKey
+
+# CosmosResourceNotFoundError: Cosmos DB 资源未找到异常（如用户不存在）
 from azure.cosmos.exceptions import CosmosResourceNotFoundError
 
+# get_settings: 获取应用配置的函数
 from app.core.config import get_settings
 
 

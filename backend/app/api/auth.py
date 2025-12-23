@@ -43,11 +43,27 @@
 - 错误信息不区分用户名/密码错误，防止枚举
 """
 
+# APIRouter: 创建路由器实例，用于组织 API 端点
+# HTTPException: HTTP 异常类，用于返回错误响应
+# Request: HTTP 请求对象，用于访问请求信息（如速率限制）
+# status: HTTP 状态码常量集合
 from fastapi import APIRouter, HTTPException, Request, status
+
+# Limiter: 速率限制器类，用于防止 API 滥用
 from slowapi import Limiter
+
+# get_remote_address: 获取客户端 IP 地址的工具函数
 from slowapi.util import get_remote_address
 
+# CurrentUserId: 当前认证用户 ID 的类型别名（依赖注入）
+# CosmosDB: Cosmos DB 服务的类型别名（依赖注入）
 from app.core.dependencies import CurrentUserId, CosmosDB
+
+# create_access_token: 创建 JWT 访问令牌
+# create_refresh_token: 创建 JWT 刷新令牌
+# get_password_hash: 使用 bcrypt 对密码进行哈希
+# verify_password: 验证密码是否与哈希匹配
+# verify_token: 验证 JWT 令牌并返回用户 ID
 from app.core.security import (
     create_access_token,
     create_refresh_token,
@@ -55,6 +71,14 @@ from app.core.security import (
     verify_password,
     verify_token,
 )
+
+# PasswordChange: 修改密码请求的数据模型
+# TokenRefresh: 令牌刷新请求的数据模型
+# TokenResponse: 认证成功响应的数据模型（包含用户信息和令牌）
+# UserCreate: 用户注册请求的数据模型
+# UserLogin: 用户登录请求的数据模型
+# UserResponse: 用户信息响应的数据模型
+# UserSettingsUpdate: 更新用户设置请求的数据模型
 from app.schemas.auth import (
     PasswordChange,
     TokenRefresh,

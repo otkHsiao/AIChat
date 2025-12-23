@@ -58,12 +58,28 @@
 - 上传：30 次/分钟
 """
 
+# APIRouter: 创建路由器实例
+# File: 文件参数声明器，用于定义文件上传参数
+# HTTPException: HTTP 异常类，用于返回错误响应
+# Request: HTTP 请求对象
+# UploadFile: FastAPI 的文件上传类型，封装了上传文件的信息和内容
+# status: HTTP 状态码常量集合
 from fastapi import APIRouter, File, HTTPException, Request, UploadFile, status
+
+# Limiter: 速率限制器类
 from slowapi import Limiter
+
+# get_remote_address: 获取客户端 IP 地址的工具函数
 from slowapi.util import get_remote_address
 
+# CurrentUserId: 当前认证用户 ID 的类型别名（依赖注入）
 from app.core.dependencies import CurrentUserId
+
+# FileDeleteResponse: 文件删除响应的数据模型
+# FileUploadResponse: 文件上传响应的数据模型（包含文件 ID、URL 等）
 from app.schemas.file import FileDeleteResponse, FileUploadResponse
+
+# get_blob_service: 获取 Azure Blob Storage 服务的单例实例
 from app.services.blob_storage import get_blob_service
 
 # 创建路由器实例

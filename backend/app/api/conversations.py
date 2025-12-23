@@ -26,14 +26,34 @@
 - 其他操作: 无限制（但受认证保护）
 """
 
+# Optional: 类型注解，表示可选参数
 from typing import Optional
 
+# APIRouter: 创建路由器实例
+# HTTPException: HTTP 异常类，用于返回错误响应
+# Query: 查询参数声明器，用于定义 URL 查询参数及其验证规则
+# Request: HTTP 请求对象
+# status: HTTP 状态码常量集合
 from fastapi import APIRouter, HTTPException, Query, Request, status
+
+# Limiter: 速率限制器类
 from slowapi import Limiter
+
+# get_remote_address: 获取客户端 IP 地址的工具函数
 from slowapi.util import get_remote_address
 
+# CurrentUserId: 当前认证用户 ID 的类型别名（依赖注入）
+# CosmosDB: Cosmos DB 服务的类型别名（依赖注入）
 from app.core.dependencies import CurrentUserId, CosmosDB
+
+# sanitize_conversation_title: 清理对话标题，防止 XSS 攻击
 from app.core.sanitizer import sanitize_conversation_title
+
+# ConversationCreate: 创建对话请求的数据模型
+# ConversationDeleteResponse: 删除对话响应的数据模型
+# ConversationListResponse: 对话列表响应的数据模型（包含分页信息）
+# ConversationResponse: 单个对话响应的数据模型
+# ConversationUpdate: 更新对话请求的数据模型
 from app.schemas.conversation import (
     ConversationCreate,
     ConversationDeleteResponse,

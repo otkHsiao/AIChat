@@ -30,12 +30,23 @@ FastAPI 依赖注入的工作原理：
 - 统一依赖的使用方式
 """
 
+# Annotated: 类型注解增强工具，用于为类型添加元数据（如依赖注入）
+# Optional: 类型注解，表示可选值
 from typing import Annotated, Optional
 
+# Depends: FastAPI 依赖注入装饰器，用于声明函数依赖
+# HTTPException: HTTP 异常类，用于返回错误响应
+# status: HTTP 状态码常量集合
 from fastapi import Depends, HTTPException, status
+
+# HTTPAuthorizationCredentials: HTTP 认证凭证类，包含 Bearer Token
+# HTTPBearer: HTTP Bearer 认证方案，自动从请求头提取 Token
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
+# verify_token: 验证 JWT 令牌并返回用户 ID
 from app.core.security import verify_token
+
+# CosmosDBService: Cosmos DB 数据库服务类
 from app.services.cosmos_db import CosmosDBService
 
 # ============================================================================

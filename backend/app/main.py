@@ -15,17 +15,37 @@ FastAPI 应用程序入口点模块。
 - 支持开发/生产环境的差异化配置
 """
 
+# 从 Python 标准库导入异步上下文管理器装饰器，用于管理应用生命周期（启动/关闭）
 from contextlib import asynccontextmanager
 
+# FastAPI: Web 框架主类，用于创建应用实例
+# Request: HTTP 请求对象，用于访问请求信息
+# status: HTTP 状态码常量集合（如 HTTP_500_INTERNAL_SERVER_ERROR）
 from fastapi import FastAPI, Request, status
+
+# CORSMiddleware: 跨源资源共享中间件，允许前端从不同域名访问 API
 from fastapi.middleware.cors import CORSMiddleware
+
+# JSONResponse: JSON 格式的 HTTP 响应类，用于返回 JSON 数据
 from fastapi.responses import JSONResponse
+
+# Limiter: 速率限制器类，用于限制 API 调用频率
+# _rate_limit_exceeded_handler: 速率限制超出时的默认异常处理函数
 from slowapi import Limiter, _rate_limit_exceeded_handler
+
+# RateLimitExceeded: 速率限制超出时抛出的异常类
 from slowapi.errors import RateLimitExceeded
+
+# get_remote_address: 获取客户端 IP 地址的工具函数，用于识别请求来源
 from slowapi.util import get_remote_address
 
+# api_router: 聚合了所有 API 路由的主路由器（包含 auth、chat、conversations、files 等）
 from app.api import api_router
+
+# get_settings: 获取应用配置的函数，返回 Settings 单例实例
 from app.core.config import get_settings
+
+# get_cosmos_db: 获取 Cosmos DB 数据库连接的依赖注入函数
 from app.core.dependencies import get_cosmos_db
 
 # ============================================================================
@@ -115,7 +135,10 @@ def create_application() -> FastAPI:
     app.state.limiter = limiter
     # 注册速率限制超出时的异常处理器
     # 当请求超出限制时，返回 429 Too Many Requests
-    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+    # type: ignore 用于抑制 Pylance 类型检查错误
+    # slowapi 的处理函数签名与 FastAPI 的 ExceptionHandler 类型定义不完全匹配
+    # 但这是 slowapi 官方推荐的用法，运行时完全正常
+    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]
 
     # ========== 配置 CORS（跨源资源共享） ==========
     # CORS 允许前端应用从不同域名访问 API

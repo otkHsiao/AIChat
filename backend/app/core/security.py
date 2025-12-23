@@ -24,12 +24,23 @@ JWT 令牌类型：
 }
 """
 
+# datetime: 日期时间类，用于处理时间戳
+# timedelta: 时间差类，用于计算令牌过期时间
+# timezone: 时区类，用于 UTC 时间处理
 from datetime import datetime, timedelta, timezone
+
+# Any: 任意类型注解
+# Optional: 可选类型注解
 from typing import Any, Optional
 
+# bcrypt: 密码哈希库，专为安全存储密码设计（自动处理盐值）
 import bcrypt
+
+# JWTError: JWT 相关异常类（签名无效、过期等）
+# jwt: JWT 编码和解码工具
 from jose import JWTError, jwt
 
+# get_settings: 获取应用配置的函数
 from app.core.config import get_settings
 
 

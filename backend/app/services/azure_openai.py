@@ -36,11 +36,21 @@ Azure OpenAI vs OpenAI：
 - 提供更好的用户体验，无需等待完整响应
 """
 
+# logging: Python 标准库，提供日志记录功能
 import logging
+
+# Any: 任意类型注解
+# AsyncGenerator: 异步生成器类型注解，用于流式响应
+# Dict: 字典类型注解
+# List: 列表类型注解
+# Optional: 可选类型注解
 from typing import Any, AsyncGenerator, Dict, List, Optional
 
+# AzureOpenAI: Azure OpenAI 同步客户端，用于非流式请求
+# AsyncAzureOpenAI: Azure OpenAI 异步客户端，用于流式响应
 from openai import AzureOpenAI, AsyncAzureOpenAI
 
+# get_settings: 获取应用配置的函数
 from app.core.config import get_settings
 
 # 配置日志记录器

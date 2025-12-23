@@ -21,9 +21,14 @@ Pydantic Settings 提供了以下优势：
 - 本地开发使用 .env 文件（不要提交到版本控制）
 """
 
+# lru_cache: 函数装饰器，用于缓存函数返回值（实现单例模式）
 from functools import lru_cache
+
+# List: 类型注解，表示列表类型
 from typing import List
 
+# BaseSettings: Pydantic 的配置基类，自动从环境变量加载配置
+# SettingsConfigDict: 配置字典类型，用于定义 Pydantic Settings 的行为
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 

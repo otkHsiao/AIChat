@@ -1,7 +1,11 @@
 """Conversation related schemas."""
 
+# List: 列表类型注解
+# Optional: 可选类型注解
 from typing import List, Optional
 
+# BaseModel: Pydantic 的数据模型基类
+# Field: 字段声明器，用于定义字段的验证规则（如最大长度、默认值）
 from pydantic import BaseModel, Field
 
 
