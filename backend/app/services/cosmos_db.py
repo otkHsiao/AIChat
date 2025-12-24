@@ -62,7 +62,7 @@ Cosmos DB 是一个全球分布式、多模型数据库服务，本应用使用�
 # Dict: 字典类型注解
 # List: 列表类型注解
 # Optional: 可选类型注解
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 # datetime: 日期时间类，用于处理时间戳
 # timezone: 时区类，用于 UTC 时间处理
@@ -73,7 +73,7 @@ import uuid
 
 # CosmosClient: Azure Cosmos DB 客户端类
 # PartitionKey: 分区键定义类，用于创建容器时指定分区键
-from azure.cosmos import CosmosClient, PartitionKey
+from azure.cosmos import ContainerProxy, CosmosClient, PartitionKey
 
 # CosmosResourceNotFoundError: Cosmos DB 资源未找到异常（如用户不存在）
 from azure.cosmos.exceptions import CosmosResourceNotFoundError
@@ -165,7 +165,7 @@ class CosmosDBService:
             partition_key=PartitionKey(path="/conversationId"),
         )
 
-    def _get_container(self, container_name: str) -> Any:
+    def _get_container(self, container_name: str) -> ContainerProxy:
         """
         根据名称获取容器实例。
         
@@ -280,7 +280,7 @@ class CosmosDBService:
         
         # 使用参数化查询防止 SQL 注入
         query = "SELECT * FROM c WHERE c.email = @email"
-        parameters = [{"name": "@email", "value": email}]
+        parameters: list[dict[str, object]] = [{"name": "@email", "value": email}]
         
         # 执行跨分区查询
         items = list(container.query_items(
@@ -652,7 +652,7 @@ class CosmosDBService:
             ]
         
         # 不需要跨分区查询
-        items = list(container.query_items(
+        items: list[dict[str, Any]] = list(container.query_items(
             query=query,
             parameters=parameters,
             enable_cross_partition_query=False,
@@ -682,7 +682,7 @@ class CosmosDBService:
         
         # 只查询 ID，减少数据传输
         query = "SELECT c.id FROM c WHERE c.conversationId = @conversationId"
-        parameters = [{"name": "@conversationId", "value": conversation_id}]
+        parameters: list[dict[str, object]] = [{"name": "@conversationId", "value": conversation_id}]
         
         items = list(container.query_items(
             query=query,
@@ -718,7 +718,7 @@ class CosmosDBService:
         
         # 使用 COUNT 聚合函数
         query = "SELECT VALUE COUNT(1) FROM c WHERE c.userId = @userId"
-        parameters = [{"name": "@userId", "value": user_id}]
+        parameters: list[dict[str, object]] = [{"name": "@userId", "value": user_id}]
         
         items = list(container.query_items(
             query=query,
@@ -726,5 +726,5 @@ class CosmosDBService:
             enable_cross_partition_query=False,
         ))
         
-        # COUNT 返回单个数值
-        return items[0] if items else 0
+        # COUNT 返回单个数值，使用 cast 告知类型检查器 SELECT VALUE 返回的是整数
+        return cast(int, items[0]) if items else 0
