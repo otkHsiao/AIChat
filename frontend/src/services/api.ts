@@ -1,5 +1,7 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react'
+import type { BaseQueryFn, FetchArgs, FetchBaseQueryError } from '@reduxjs/toolkit/query'
 import type { RootState } from '../store'
+import { logout } from '../features/auth/authSlice'
 import type {
   User,
   AuthResponse,
@@ -14,6 +16,39 @@ import type {
 } from '../types'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
+
+// Base fetch query configuration
+const baseQuery = fetchBaseQuery({
+  baseUrl: API_BASE_URL,
+  prepareHeaders: (headers, { getState }) => {
+    // Get token from auth state
+    const token = (getState() as RootState).auth.token
+    if (token) {
+      headers.set('Authorization', `Bearer ${token}`)
+    }
+    return headers
+  },
+})
+
+// Custom base query with 401 handling
+const baseQueryWithReauth: BaseQueryFn<
+  string | FetchArgs,
+  unknown,
+  FetchBaseQueryError
+> = async (args, api, extraOptions) => {
+  const result = await baseQuery(args, api, extraOptions)
+  
+  // Check if we got a 401 Unauthorized response
+  if (result.error && result.error.status === 401) {
+    // Dispatch logout action to clear auth state
+    api.dispatch(logout())
+    
+    // Redirect to login page
+    window.location.href = '/login'
+  }
+  
+  return result
+}
 
 // Backend response wrapper type
 interface ApiResponse<T> {
@@ -38,19 +73,12 @@ interface MessageListData {
 /**
  * RTK Query base API configuration
  */
+/**
+ * RTK Query base API configuration
+ */
 export const api = createApi({
   reducerPath: 'api',
-  baseQuery: fetchBaseQuery({
-    baseUrl: API_BASE_URL,
-    prepareHeaders: (headers, { getState }) => {
-      // Get token from auth state
-      const token = (getState() as RootState).auth.token
-      if (token) {
-        headers.set('Authorization', `Bearer ${token}`)
-      }
-      return headers
-    },
-  }),
+  baseQuery: baseQueryWithReauth,
   tagTypes: ['User', 'Conversation', 'Message', 'File'],
   endpoints: (builder) => ({
     // ============ Auth Endpoints ============
