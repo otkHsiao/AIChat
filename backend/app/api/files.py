@@ -79,6 +79,9 @@ from app.core.dependencies import CurrentUserId
 # FileUploadResponse: 文件上传响应的数据模型（包含文件 ID、URL 等）
 from app.schemas.file import FileDeleteResponse, FileUploadResponse
 
+# SuccessResponse: 标准成功响应的泛型模型
+from app.schemas.common import SuccessResponse
+
 # get_blob_service: 获取 Azure Blob Storage 服务的单例实例
 from app.services.blob_storage import get_blob_service
 
@@ -94,13 +97,13 @@ limiter = Limiter(key_func=get_remote_address)
 # 上传文件
 # ============================================================================
 
-@router.post("/upload", response_model=dict, status_code=status.HTTP_201_CREATED)
+@router.post("/upload", response_model=SuccessResponse[FileUploadResponse], status_code=status.HTTP_201_CREATED)
 @limiter.limit("30/minute")  # 限制每分钟 30 次上传
 async def upload_file(
     request: Request,
     user_id: CurrentUserId,
     file: UploadFile = File(...),  # 使用 FastAPI 的文件上传
-) -> dict:
+) -> SuccessResponse[FileUploadResponse]:
     """
     上传文件（图片或文档）。
     
@@ -123,7 +126,7 @@ async def upload_file(
         file: 上传的文件（UploadFile 类型）
         
     Returns:
-        dict: 包含文件信息和访问 URL 的响应
+        SuccessResponse[FileUploadResponse]: 包含文件信息和访问 URL 的响应
             - id: 文件唯一 ID
             - fileName: 原始文件名
             - type: 文件类别（"image" 或 "file"）
@@ -172,9 +175,8 @@ async def upload_file(
         )
 
     # 返回上传结果
-    return {
-        "success": True,
-        "data": FileUploadResponse(
+    return SuccessResponse(
+        data=FileUploadResponse(
             id=result["id"],
             fileName=result["fileName"],
             type=result["type"],
@@ -182,8 +184,8 @@ async def upload_file(
             size=result["size"],
             url=result["url"],
             createdAt=result["createdAt"],
-        ),
-    }
+        )
+    )
 
 
 # ============================================================================

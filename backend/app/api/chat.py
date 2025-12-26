@@ -91,6 +91,9 @@ from app.schemas.message import (
     MessageResponse,
 )
 
+# SuccessResponse: 标准成功响应的泛型模型
+from app.schemas.common import SuccessResponse
+
 # get_openai_service: 获取 Azure OpenAI 服务的单例实例
 from app.services.azure_openai import get_openai_service
 
@@ -108,7 +111,7 @@ limiter = Limiter(key_func=get_remote_address)
 # 获取消息历史
 # ============================================================================
 
-@router.get("/conversations/{conversation_id}/messages", response_model=dict)
+@router.get("/conversations/{conversation_id}/messages", response_model=SuccessResponse[MessageListResponse])
 @limiter.limit("60/minute")  # 限制每分钟 60 次请求
 async def get_messages(
     request: Request,
@@ -117,7 +120,7 @@ async def get_messages(
     db: CosmosDB,
     limit: int = Query(default=50, ge=1, le=200),
     before: Optional[str] = Query(default=None, description="获取此消息ID之前的消息"),
-) -> dict:
+) -> SuccessResponse[MessageListResponse]:
     """
     获取对话的消息历史。
     
@@ -137,7 +140,7 @@ async def get_messages(
         before: 获取此消息 ID 之前的消息（用于"加载更多"）
         
     Returns:
-        dict: 包含消息列表和分页信息的响应
+        SuccessResponse[MessageListResponse]: 包含消息列表和分页信息的响应
         
     Raises:
         HTTPException: 404 错误，当对话不存在时
@@ -163,20 +166,19 @@ async def get_messages(
     if has_more:
         messages = messages[:limit]
 
-    return {
-        "success": True,
-        "data": MessageListResponse(
+    return SuccessResponse(
+        data=MessageListResponse(
             messages=[MessageResponse(**msg) for msg in messages],
             hasMore=has_more,
-        ),
-    }
+        )
+    )
 
 
 # ============================================================================
 # 发送消息（非流式）
 # ============================================================================
 
-@router.post("/conversations/{conversation_id}/messages", response_model=dict)
+@router.post("/conversations/{conversation_id}/messages", response_model=SuccessResponse[ChatResponse])
 @limiter.limit("20/minute")  # 限制每分钟 20 次消息发送
 async def send_message(
     request: Request,
@@ -184,7 +186,7 @@ async def send_message(
     chat_request: ChatRequest,
     user_id: CurrentUserId,
     db: CosmosDB,
-) -> dict:
+) -> SuccessResponse[ChatResponse]:
     """
     发送消息并获取非流式响应。
     
@@ -207,7 +209,7 @@ async def send_message(
         db: Cosmos DB 服务实例
         
     Returns:
-        dict: 包含用户消息和 AI 回复的响应
+        SuccessResponse[ChatResponse]: 包含用户消息和 AI 回复的响应
         
     Raises:
         HTTPException: 404 错误，当对话不存在时
@@ -279,13 +281,12 @@ async def send_message(
         {"messageCount": conversation["messageCount"] + 2},
     )
 
-    return {
-        "success": True,
-        "data": ChatResponse(
+    return SuccessResponse(
+        data=ChatResponse(
             userMessage=MessageResponse(**user_message),
             assistantMessage=MessageResponse(**assistant_message),
-        ),
-    }
+        )
+    )
 
 
 # ============================================================================

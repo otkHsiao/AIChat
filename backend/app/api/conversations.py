@@ -62,6 +62,9 @@ from app.schemas.conversation import (
     ConversationUpdate,
 )
 
+# SuccessResponse: 标准成功响应的泛型模型
+from app.schemas.common import SuccessResponse
+
 # 创建路由器实例
 # 这个路由器会被注册到 /api/conversations 路径下
 router = APIRouter()
@@ -74,7 +77,7 @@ limiter = Limiter(key_func=get_remote_address)
 # 列出对话
 # ============================================================================
 
-@router.get("", response_model=dict)
+@router.get("", response_model=SuccessResponse[ConversationListResponse])
 @limiter.limit("60/minute")  # 限制每分钟 60 次请求
 async def list_conversations(
     request: Request,
@@ -82,7 +85,7 @@ async def list_conversations(
     db: CosmosDB,
     limit: int = Query(default=20, ge=1, le=100),  # 每页数量：1-100，默认 20
     offset: int = Query(default=0, ge=0),           # 跳过数量：>= 0，默认 0
-) -> dict:
+) -> SuccessResponse[ConversationListResponse]:
     """
     获取当前用户的所有对话列表。
     
@@ -106,7 +109,7 @@ async def list_conversations(
         offset: 跳过数量
         
     Returns:
-        dict: 包含对话列表和分页信息的响应
+        SuccessResponse[ConversationListResponse]: 包含对话列表和分页信息的响应
     """
     # 获取对话列表
     conversations = await db.get_conversations_by_user(
@@ -118,31 +121,30 @@ async def list_conversations(
     # 获取对话总数（用于分页 UI）
     total = await db.count_conversations_by_user(user_id)
 
-    return {
-        "success": True,
-        "data": ConversationListResponse(
+    return SuccessResponse(
+        data=ConversationListResponse(
             conversations=[
                 ConversationResponse(**conv) for conv in conversations
             ],
             total=total,
             limit=limit,
             offset=offset,
-        ),
-    }
+        )
+    )
 
 
 # ============================================================================
 # 创建对话
 # ============================================================================
 
-@router.post("", response_model=dict, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=SuccessResponse[ConversationResponse], status_code=status.HTTP_201_CREATED)
 @limiter.limit("30/minute")  # 限制每分钟 30 次创建
 async def create_conversation(
     request: Request,
     conversation_data: ConversationCreate,
     user_id: CurrentUserId,
     db: CosmosDB,
-) -> dict:
+) -> SuccessResponse[ConversationResponse]:
     """
     创建新对话。
     
@@ -163,7 +165,7 @@ async def create_conversation(
         db: Cosmos DB 服务实例
         
     Returns:
-        dict: 包含创建的对话信息的响应
+        SuccessResponse[ConversationResponse]: 包含创建的对话信息的响应
     """
     # 清理输入数据，防止 XSS
     sanitized_data = conversation_data.model_dump()
@@ -176,22 +178,21 @@ async def create_conversation(
         conversation_data=sanitized_data,
     )
 
-    return {
-        "success": True,
-        "data": ConversationResponse(**conversation),
-    }
+    return SuccessResponse(
+        data=ConversationResponse(**conversation)
+    )
 
 
 # ============================================================================
 # 获取单个对话
 # ============================================================================
 
-@router.get("/{conversation_id}", response_model=dict)
+@router.get("/{conversation_id}", response_model=SuccessResponse[ConversationResponse])
 async def get_conversation(
     conversation_id: str,
     user_id: CurrentUserId,
     db: CosmosDB,
-) -> dict:
+) -> SuccessResponse[ConversationResponse]:
     """
     获取指定对话的详情。
     
@@ -204,7 +205,7 @@ async def get_conversation(
         db: Cosmos DB 服务实例
         
     Returns:
-        dict: 包含对话信息的响应
+        SuccessResponse[ConversationResponse]: 包含对话信息的响应
         
     Raises:
         HTTPException: 404 错误，当对话不存在或不属于当前用户时
@@ -218,23 +219,22 @@ async def get_conversation(
             detail="会话不存在",
         )
 
-    return {
-        "success": True,
-        "data": ConversationResponse(**conversation),
-    }
+    return SuccessResponse(
+        data=ConversationResponse(**conversation)
+    )
 
 
 # ============================================================================
 # 更新对话
 # ============================================================================
 
-@router.put("/{conversation_id}", response_model=dict)
+@router.put("/{conversation_id}", response_model=SuccessResponse[ConversationResponse])
 async def update_conversation(
     conversation_id: str,
     conversation_data: ConversationUpdate,
     user_id: CurrentUserId,
     db: CosmosDB,
-) -> dict:
+) -> SuccessResponse[ConversationResponse]:
     """
     更新对话的标题或系统提示词。
     
@@ -252,7 +252,7 @@ async def update_conversation(
         db: Cosmos DB 服务实例
         
     Returns:
-        dict: 包含更新后对话信息的响应
+        SuccessResponse[ConversationResponse]: 包含更新后对话信息的响应
         
     Raises:
         HTTPException: 404 错误，当对话不存在或不属于当前用户时
@@ -269,10 +269,9 @@ async def update_conversation(
     updates = conversation_data.model_dump(exclude_none=True)
     conversation = await db.update_conversation(conversation_id, user_id, updates)
 
-    return {
-        "success": True,
-        "data": ConversationResponse(**conversation),
-    }
+    return SuccessResponse(
+        data=ConversationResponse(**conversation)
+    )
 
 
 # ============================================================================

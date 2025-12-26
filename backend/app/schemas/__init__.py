@@ -1,56 +1,82 @@
 """Pydantic schemas for request/response validation."""
 
 from app.schemas.auth import (
+    PasswordChange,
+    TokenPayload,
+    TokenRefresh,
+    TokenResponse,
     UserCreate,
+    UserInDB,
     UserLogin,
     UserResponse,
-    TokenResponse,
-    TokenRefresh,
+    UserSettings,
+    UserSettingsUpdate,
 )
 from app.schemas.conversation import (
     ConversationCreate,
-    ConversationUpdate,
-    ConversationResponse,
+    ConversationDeleteResponse,
     ConversationListResponse,
+    ConversationResponse,
+    ConversationUpdate,
 )
 from app.schemas.message import (
-    MessageCreate,
-    MessageResponse,
-    MessageListResponse,
     Attachment,
+    AttachmentRef,
+    ChatRequest,
+    ChatResponse,
+    MessageCreate,
+    MessageListResponse,
+    MessageResponse,
+    StreamEvent,
+    TokenUsage,
 )
 from app.schemas.file import (
-    FileUploadResponse,
+    FileDeleteResponse,
     FileInfoResponse,
+    FileUploadResponse,
 )
 from app.schemas.common import (
-    SuccessResponse,
-    ErrorResponse,
     ErrorDetail,
+    ErrorResponse,
+    PaginationInfo,
+    SuccessResponse,
 )
 
 __all__ = [
     # Auth
+    "PasswordChange",
+    "TokenPayload",
+    "TokenRefresh",
+    "TokenResponse",
     "UserCreate",
+    "UserInDB",
     "UserLogin",
     "UserResponse",
-    "TokenResponse",
-    "TokenRefresh",
+    "UserSettings",
+    "UserSettingsUpdate",
     # Conversation
     "ConversationCreate",
-    "ConversationUpdate",
-    "ConversationResponse",
+    "ConversationDeleteResponse",
     "ConversationListResponse",
+    "ConversationResponse",
+    "ConversationUpdate",
     # Message
-    "MessageCreate",
-    "MessageResponse",
-    "MessageListResponse",
     "Attachment",
+    "AttachmentRef",
+    "ChatRequest",
+    "ChatResponse",
+    "MessageCreate",
+    "MessageListResponse",
+    "MessageResponse",
+    "StreamEvent",
+    "TokenUsage",
     # File
-    "FileUploadResponse",
+    "FileDeleteResponse",
     "FileInfoResponse",
+    "FileUploadResponse",
     # Common
-    "SuccessResponse",
-    "ErrorResponse",
     "ErrorDetail",
+    "ErrorResponse",
+    "PaginationInfo",
+    "SuccessResponse",
 ]

@@ -78,6 +78,10 @@ from app.core.security import (
 # UserCreate: 用户注册请求的数据模型
 # UserLogin: 用户登录请求的数据模型
 # UserResponse: 用户信息响应的数据模型
+# UserSettings: 用户设置的数据模型
+# BaseModel: Pydantic 的数据模型基类
+from pydantic import BaseModel
+
 # UserSettingsUpdate: 更新用户设置请求的数据模型
 from app.schemas.auth import (
     PasswordChange,
@@ -86,8 +90,12 @@ from app.schemas.auth import (
     UserCreate,
     UserLogin,
     UserResponse,
+    UserSettings,
     UserSettingsUpdate,
 )
+
+# SuccessResponse: 标准成功响应的泛型模型
+from app.schemas.common import SuccessResponse
 
 # 创建路由器实例
 # 这个路由器会被注册到 /api/auth 路径下
@@ -233,8 +241,14 @@ async def login(request: Request, credentials: UserLogin, db: CosmosDB) -> Token
 # 令牌刷新
 # ============================================================================
 
-@router.post("/refresh", response_model=dict)
-async def refresh_token(token_data: TokenRefresh) -> dict:
+class RefreshTokenData(BaseModel):
+    """刷新令牌成功响应的数据模型。"""
+    accessToken: str
+    expiresIn: int = 86400  # 24 小时（秒）
+
+
+@router.post("/refresh", response_model=SuccessResponse[RefreshTokenData])
+async def refresh_token(token_data: TokenRefresh) -> SuccessResponse[RefreshTokenData]:
     """
     使用刷新令牌获取新的访问令牌。
     
@@ -251,7 +265,7 @@ async def refresh_token(token_data: TokenRefresh) -> dict:
         token_data: 包含 refreshToken 的请求体
         
     Returns:
-        dict: 包含新访问令牌的响应
+        SuccessResponse[RefreshTokenData]: 包含新访问令牌的响应
         
     Raises:
         HTTPException: 401 错误，当刷新令牌无效或过期时
@@ -267,21 +281,17 @@ async def refresh_token(token_data: TokenRefresh) -> dict:
     # 生成新的访问令牌
     access_token = create_access_token(subject=user_id)
 
-    return {
-        "success": True,
-        "data": {
-            "accessToken": access_token,
-            "expiresIn": 86400,  # 24 小时（秒）
-        },
-    }
+    return SuccessResponse(
+        data=RefreshTokenData(accessToken=access_token)
+    )
 
 
 # ============================================================================
 # 获取当前用户信息
 # ============================================================================
 
-@router.get("/me", response_model=dict)
-async def get_current_user(user_id: CurrentUserId, db: CosmosDB) -> dict:
+@router.get("/me", response_model=SuccessResponse[UserResponse])
+async def get_current_user(user_id: CurrentUserId, db: CosmosDB) -> SuccessResponse[UserResponse]:
     """
     获取当前登录用户的信息。
     
@@ -293,7 +303,7 @@ async def get_current_user(user_id: CurrentUserId, db: CosmosDB) -> dict:
         db: Cosmos DB 服务实例（依赖注入）
         
     Returns:
-        dict: 包含用户信息的响应
+        SuccessResponse[UserResponse]: 包含用户信息的响应
         
     Raises:
         HTTPException: 404 错误，当用户不存在时（理论上不应发生）
@@ -306,28 +316,27 @@ async def get_current_user(user_id: CurrentUserId, db: CosmosDB) -> dict:
             detail="用户不存在",
         )
 
-    return {
-        "success": True,
-        "data": UserResponse(
+    return SuccessResponse(
+        data=UserResponse(
             id=user["id"],
             email=user["email"],
             username=user["username"],
             createdAt=user["createdAt"],
             settings=user.get("settings"),
-        ),
-    }
+        )
+    )
 
 
 # ============================================================================
 # 更新用户设置
 # ============================================================================
 
-@router.put("/settings", response_model=dict)
+@router.put("/settings", response_model=SuccessResponse[UserSettings])
 async def update_settings(
     settings: UserSettingsUpdate,
     user_id: CurrentUserId,
     db: CosmosDB,
-) -> dict:
+) -> SuccessResponse[UserSettings]:
     """
     更新当前用户的设置。
     
@@ -339,7 +348,7 @@ async def update_settings(
         db: Cosmos DB 服务实例
         
     Returns:
-        dict: 包含更新后设置的响应
+        SuccessResponse[UserSettings]: 包含更新后设置的响应
         
     Raises:
         HTTPException: 404 错误，当用户不存在时
@@ -354,22 +363,22 @@ async def update_settings(
             detail="用户不存在",
         )
 
-    return {
-        "success": True,
-        "data": user.get("settings"),
-    }
+    user_settings = user.get("settings") or {}
+    return SuccessResponse(
+        data=UserSettings(**user_settings)
+    )
 
 
 # ============================================================================
 # 修改密码
 # ============================================================================
 
-@router.put("/password", response_model=dict)
+@router.put("/password", response_model=SuccessResponse[None])
 async def change_password(
     password_data: PasswordChange,
     user_id: CurrentUserId,
     db: CosmosDB,
-) -> dict:
+) -> SuccessResponse[None]:
     """
     修改当前用户的密码。
     
@@ -386,7 +395,7 @@ async def change_password(
         db: Cosmos DB 服务实例
         
     Returns:
-        dict: 成功消息
+        SuccessResponse[None]: 成功消息
         
     Raises:
         HTTPException:
@@ -413,7 +422,4 @@ async def change_password(
         "passwordHash": get_password_hash(password_data.newPassword),
     })
 
-    return {
-        "success": True,
-        "message": "密码已更新",
-    }
+    return SuccessResponse(message="密码已更新")
